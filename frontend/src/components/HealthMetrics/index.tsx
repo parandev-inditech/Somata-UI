@@ -16,10 +16,7 @@ import {
     TableHead,
     TableRow,
     TablePagination,
-    TextField,
-    IconButton,
-    Stack,
-    FormControl
+    TextField
 } from '@mui/material';
 import TrafficIcon from '@mui/icons-material/Traffic';
 import BuildIcon from '@mui/icons-material/Build';
@@ -30,8 +27,7 @@ import {
     fetchMaintenanceMetrics, 
     fetchOperationsMetrics, 
     fetchSafetyMetrics, 
-    fetchRegionAverages,
-    fetchMetricsTrendData 
+    fetchRegionAverages
 } from '../../store/slices/metricsSlice';
 import { AppDispatch } from '../../store/store';
 import { metricsApi } from '../../services/api/metricsApi';
@@ -135,9 +131,23 @@ function TabPanel(props: TabPanelProps) {
             role="tabpanel"
             hidden={value !== index}
             {...other}
+            style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                overflow: 'hidden'
+            }}
         >
             {value === index && (
-                <Box sx={{ p: 3 }}>
+                <Box sx={{ 
+                    p: { xs: 1, sm: 2, md: 3 },
+                    height: '100%',
+                    overflow: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
                     {children}
                 </Box>
             )}
@@ -652,15 +662,19 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            width: '70%',
+            width: '100%',
+            minWidth: 0, // Allow shrinking below content width
         }}>
             <TableContainer 
                 component={Paper} 
                 sx={{ 
                     flex: 1,
                     overflow: 'auto',
+                    width: '100%',
+                    minWidth: 0, // Allow shrinking
                     '& .MuiTable-root': {
-                        minWidth: 650
+                        minWidth: 'max-content',
+                        width: '100%'
                     }
                 }}
             >
@@ -668,7 +682,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                     <TableHead>
                         <TableRow>
                             {columns.map((column) => (
-                                <StyledTableCell key={column.id}>
+                                <StyledTableCell key={column.id} sx={{ minWidth: 150, maxWidth: 200 }}>
                                     <TextField 
                                         size="small"
                                         variant="outlined"
@@ -679,7 +693,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                                         margin="dense"
                                         sx={{ 
                                             mt: 1,
-                                            width: column.id === 'zoneGroup' || column.id === 'corridor' ? '100%' : '120px',
+                                            minWidth: 120,
                                             '& .MuiOutlinedInput-root': { 
                                                 bgcolor: '#0070ed',
                                                 color: 'white',
@@ -720,7 +734,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                             .map((row, index) => (
                                 <StyledTableRow key={index}>
                                     {columns.map((column) => (
-                                        <StyledTableCell key={column.id}>
+                                        <StyledTableCell key={column.id} sx={{ minWidth: 150, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {row[column.id as keyof typeof row]}
                                         </StyledTableCell>
                                     ))}
@@ -738,15 +752,22 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                     </TableBody>
                 </Table>
             </TableContainer>
-            <TablePagination
-                rowsPerPageOptions={[10, 25, 50]}
-                component="div"
-                count={filteredData.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-            />
+            <Box sx={{ 
+                flexShrink: 0,
+                borderTop: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper'
+            }}>
+                <TablePagination
+                    rowsPerPageOptions={[10, 25, 50]}
+                    component="div"
+                    count={filteredData.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                />
+            </Box>
         </Box>
     );
 };
@@ -1136,8 +1157,23 @@ const HealthMetrics = () => {
     };
 
     return (
-        <Box sx={{ width: '100%', maxWidth: '100%' }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ 
+            width: '100%', 
+            maxWidth: '100%',
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        }}>
+            <Box sx={{ 
+                borderBottom: 1, 
+                borderColor: 'divider',
+                flexShrink: 0,
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                backgroundColor: 'background.paper'
+            }}>
                 <Tabs 
                     value={tabValue} 
                     onChange={handleTabChange}
@@ -1153,27 +1189,33 @@ const HealthMetrics = () => {
                     <Tab label="Safety Trend" />
                 </Tabs>
             </Box>
-            <TabPanel value={tabValue} index={0}>
-                <RegionStatus />
-            </TabPanel>
-            <TabPanel value={tabValue} index={1}>
-                <MetricsTable type="Maintenance" />
-            </TabPanel>
-            <TabPanel value={tabValue} index={2}>
-                <TrendGraphs type="maintenance" />
-            </TabPanel>
-            <TabPanel value={tabValue} index={3}>
-                <MetricsTable type="Operations" />
-            </TabPanel>
-            <TabPanel value={tabValue} index={4}>
-                <TrendGraphs type="operation" />
-            </TabPanel>
-            <TabPanel value={tabValue} index={5}>
-                <MetricsTable type="Safety" />
-            </TabPanel>
-            <TabPanel value={tabValue} index={6}>
-                <TrendGraphs type="safety" />
-            </TabPanel>
+            <Box sx={{ 
+                flex: 1,
+                overflow: 'hidden',
+                position: 'relative'
+            }}>
+                <TabPanel value={tabValue} index={0}>
+                    <RegionStatus />
+                </TabPanel>
+                <TabPanel value={tabValue} index={1}>
+                    <MetricsTable type="Maintenance" />
+                </TabPanel>
+                <TabPanel value={tabValue} index={2}>
+                    <TrendGraphs type="maintenance" />
+                </TabPanel>
+                <TabPanel value={tabValue} index={3}>
+                    <MetricsTable type="Operations" />
+                </TabPanel>
+                <TabPanel value={tabValue} index={4}>
+                    <TrendGraphs type="operation" />
+                </TabPanel>
+                <TabPanel value={tabValue} index={5}>
+                    <MetricsTable type="Safety" />
+                </TabPanel>
+                <TabPanel value={tabValue} index={6}>
+                    <TrendGraphs type="safety" />
+                </TabPanel>
+            </Box>
         </Box>
     );
 };

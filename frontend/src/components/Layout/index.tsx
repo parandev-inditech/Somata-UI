@@ -58,11 +58,11 @@ export default function Layout({ children }: LayoutProps) {
   const sideNavWidth = sideNavExpanded ? expandedDrawerWidth : collapsedDrawerWidth
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <Box sx={{ display: "flex", height: "100vh", overflow: "auto" }}>
       <Header sideNavOpen={sideNavExpanded} onSideNavToggle={handleSideNavToggle} onFilterToggle={handleFilterToggle} />
       <SideNav open={true} expanded={sideNavExpanded} width={sideNavWidth} />
       <Main sideNavWidth={sideNavWidth} filterOpen={filterOpen}>
-        <Box sx={{ pt: 8, height: "calc(100vh - 64px)", overflow: "auto" }}>
+        <Box sx={{ pt: 8, height: "calc(100vh - 64px)", overflowY: "auto", overflowX: "auto" }}>
           {/* Filter Button - Absolutely positioned in top right corner */}
           <Box sx={{ 
             position: 'absolute', 
