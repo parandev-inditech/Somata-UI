@@ -793,6 +793,8 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         hovertemplate: ''
     });
     const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+    const [rawData, setRawData] = useState<MetricData[]>([]);
+    const [averageData, setAverageData] = useState<{label: string; avg: number}[]>([]);
 
     // Create filter params with the specific payload structure from the request
     const filterParams = useMemo((): FilterParams => ({
@@ -831,6 +833,16 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         return colors[index % colors.length];
     }, []);
 
+    // Create a mapping of locations to colors that will be consistent between charts
+    const getLocationColors = useCallback(() => {
+        const uniqueLocations = Array.from(new Set([
+            ...rawData.map(item => item.corridor || item.zoneGroup || 'Unknown'),
+            ...averageData.map(item => item.label || 'Unknown')
+        ])).sort(); // Sort to ensure consistent ordering
+        
+        return Object.fromEntries(uniqueLocations.map((location, index) => [location, getLocationColor(index)]));
+    }, [rawData, averageData, getLocationColor]);
+
     // Get measure code based on type
     const getMeasure = useCallback(() => {
         switch(type) {
@@ -845,16 +857,108 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         }
     }, [type]);
 
-    // Create a mapping of locations to colors that will be consistent between charts
-    const getLocationColors = useCallback((locations: string[]) => {
-        return Object.fromEntries(locations.map((location, index) => [location, getLocationColor(index)]));
-    }, [getLocationColor]);
+    // Fetch data
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            
+            try {
+                const measure = getMeasure();
+                const params: MetricsFilterRequest = {
+                    source: 'main',
+                    measure
+                };
+                
+                // POST request to /metrics/filter for time series data
+                const timeSeriesResponse = await metricsApi.getMetricsFilter(params, filterParams);
+                
+                // POST request to /metrics/average for location bar data
+                const averageResponse = await metricsApi.getMetricsAverage({
+                    ...params,
+                    dashboard: false
+                }, filterParams);
+                
+                consoledebug('Time Series Response:', timeSeriesResponse);
+                consoledebug('Average Response:', averageResponse);
 
-    // Process time series data - Group by month/year for time series chart
-    const processTimeSeriesData = useCallback((data: MetricData[]) => {
-        if (!data?.length) return [];
+                setRawData(timeSeriesResponse || []);
+                setAverageData(Array.isArray(averageResponse) ? averageResponse : []);
+                
+            } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : 'Failed to fetch trend data');
+                console.error('Error fetching trend data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
         
-        // Group by zone group or corridor
+        fetchData();
+    }, [getMeasure, filterParams]);
+
+    // Process data when raw data changes
+    useEffect(() => {
+        if (!rawData.length && !averageData.length) return;
+
+        const locationColors = getLocationColors();
+
+        // Process location bar data
+        let sortedData: Array<{location: string, average: number, label: string}> = [];
+        
+        if (averageData.length) {
+            sortedData = [...averageData]
+                .map(item => ({
+                    location: item.label || 'Unknown',
+                    average: item.avg || 0,
+                    label: item.label
+                }))
+                .sort((a, b) => a.average - b.average);
+        } else {
+            // Fallback to using rawData
+            const aggregatedData: Record<string, { sum: number, count: number }> = {};
+            
+            rawData.forEach(item => {
+                const location = item.corridor || item.zoneGroup || 'Unknown';
+                
+                if (!aggregatedData[location]) {
+                    aggregatedData[location] = { sum: 0, count: 0 };
+                }
+                
+                const metricValue = typeof item['percent Health'] === 'string'
+                    ? parseFloat(item['percent Health'])
+                    : (item['percent Health'] || item.value || 0);
+                
+                aggregatedData[location].sum += metricValue;
+                aggregatedData[location].count += 1;
+            });
+            
+            sortedData = Object.entries(aggregatedData)
+                .map(([location, { sum, count }]) => ({
+                    location,
+                    average: count > 0 ? sum / count : 0,
+                    label: location
+                }))
+                .sort((a, b) => a.average - b.average);
+        }
+
+        // Create location bar data
+        const processedLocationBarData = {
+            x: sortedData.map(item => item.average),
+            y: sortedData.map(item => item.location),
+            type: 'bar' as const,
+            orientation: 'h' as const,
+            marker: {
+                color: sortedData.map(item => locationColors[item.location]),
+                opacity: sortedData.map(item => 
+                    selectedLocation ? (item.location === selectedLocation ? 1 : 0.5) : 1
+                )
+            },
+            hovertemplate: '<b>%{y}</b><br>Value: %{x:.1%}<extra></extra>',
+        };
+
+        setLocationBarData(processedLocationBarData);
+
+        // Process time series data
         const groupedData: Record<string, {
             monthYear: string;
             date: Date;
@@ -862,25 +966,21 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
             count: number;
         }[]> = {};
         
-        data.forEach(item => {
-            // Use month field or timestamp if available
+        rawData.forEach(item => {
             const dateStr = item.month || item.timestamp;
             if (!dateStr) return;
             
             const date = new Date(dateStr);
             const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
             
-            // Get the group identifier (zoneGroup, corridor, or Unknown)
             const group = item.zoneGroup || item.corridor || 'Unknown';
             
             if (!groupedData[group]) {
                 groupedData[group] = [];
             }
             
-            // Check if we already have an entry for this month/year
             const existingEntry = groupedData[group].find(entry => entry.monthYear === monthYear);
             
-            // Get value from percent Health (if it's a string, convert to number) or use value field
             const metricValue = typeof item['percent Health'] === 'string' 
                 ? parseFloat(item['percent Health']) 
                 : (item['percent Health'] || item.value || 0);
@@ -897,14 +997,9 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                 });
             }
         });
-        
-        // Get unique locations for consistent color mapping
-        const uniqueLocations = Object.keys(groupedData);
-        const locationColors = getLocationColors(uniqueLocations);
-        
-        // Calculate averages and convert to Plotly format
-        return Object.entries(groupedData).map(([group, points]) => {
-            // Sort by date
+
+        // Convert to time series format
+        const processedTimeSeriesData = Object.entries(groupedData).map(([group, points]) => {
             points.sort((a, b) => a.date.getTime() - b.date.getTime());
             
             return {
@@ -928,130 +1023,13 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                 visible: selectedLocation ? (group === selectedLocation ? true : 'legendonly') : true,
             };
         });
-    }, [selectedLocation, getLocationColors]);
-    
-    // Process location bar data - sort by label for the bar chart
-    const processLocationBarData = useCallback((data: MetricData[], averageData: {label: string; avg: number}[] = []) => {
-        if (!data?.length && !averageData?.length) return { 
-            x: [], 
-            y: [], 
-            type: 'bar', 
-            orientation: 'h',
-            marker: { color: [], opacity: [] },
-            hovertemplate: ''
-        };
-        
-        let sortedData: Array<{location: string, average: number, label: string}> = [];
-        
-        // If we have average data use that instead - it has better formatting with labels
-        if (averageData?.length) {
-            sortedData = [...averageData]
-                .map(item => ({
-                    location: item.label || 'Unknown',
-                    average: item.avg || 0,
-                    label: item.label // Use the label from the response
-                }))
-                .sort((a, b) => a.average - b.average);
-        } else {
-            // Fallback to using data if no averageData is available
-            // Aggregate by corridor or zoneGroup as the location identifier
-            const aggregatedData: Record<string, { sum: number, count: number, label: string }> = {};
-            
-            data.forEach(item => {
-                const location = item.corridor || item.zoneGroup || 'Unknown';
-                
-                if (!aggregatedData[location]) {
-                    aggregatedData[location] = { sum: 0, count: 0, label: location };
-                }
-                
-                // Get the value from percent Health or value field
-                const metricValue = typeof item['percent Health'] === 'string'
-                    ? parseFloat(item['percent Health'])
-                    : (item['percent Health'] || item.value || 0);
-                
-                aggregatedData[location].sum += metricValue;
-                aggregatedData[location].count += 1;
-            });
-            
-            // Calculate averages and sort
-            sortedData = Object.entries(aggregatedData)
-                .map(([key, { sum, count, label }]) => ({
-                    location: key,
-                    average: count > 0 ? sum / count : 0,
-                    label: label // Use the label from the response
-                }))
-                .sort((a, b) => a.average - b.average);
-        }
 
-        // Get consistent colors based on the order from time series data
-        const uniqueLocations = sortedData.map(item => item.location);
-        const locationColors = getLocationColors(uniqueLocations);
-        
-        return {
-            x: sortedData.map(item => item.average),
-            y: sortedData.map(item => item.location),
-            type: 'bar',
-            orientation: 'h',
-            marker: {
-                color: sortedData.map(item => locationColors[item.location]),
-                opacity: sortedData.map(item => 
-                    selectedLocation ? (item.location === selectedLocation ? 1 : 0.5) : 1
-                )
-            },
-            hovertemplate: '<b>%{y}</b><br>Value: %{x:.1%}<extra></extra>',
-        };
-    }, [selectedLocation, getLocationColors]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            setError(null);
-            
-            try {
-                const measure = getMeasure();
-                const params: MetricsFilterRequest = {
-                    source: 'main',
-                    measure
-                };
-                
-                // POST request to /metrics/filter for time series data
-                const timeSeriesResponse = await metricsApi.getMetricsFilter(params, filterParams);
-                
-                // POST request to /metrics/average for location bar data
-                const averageResponse = await metricsApi.getMetricsAverage({
-                    ...params,
-                    dashboard: false
-                }, filterParams);
-                
-                // Also fetch straight average for reference
-                const straightAverageResponse = await metricsApi.getStraightAverage(params, filterParams);
-                
-                consoledebug('Time Series Response:', timeSeriesResponse);
-                consoledebug('Average Response:', averageResponse);
-                consoledebug('Straight Average Response:', straightAverageResponse);
-
-                // Process time series data
-                const processedTimeSeriesData = processTimeSeriesData(timeSeriesResponse);
-                setTimeSeriesData(processedTimeSeriesData);
-                
-                // Process location bar data with colors
-                const processedLocationBarData = processLocationBarData(timeSeriesResponse, 
-                    Array.isArray(averageResponse) ? averageResponse : []);
-                setLocationBarData(processedLocationBarData);
-                
-            } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch trend data');
-                console.error('Error fetching trend data:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        
-        fetchData();
-    }, [type, filterParams, getMeasure, processTimeSeriesData, processLocationBarData]);
+        setTimeSeriesData(processedTimeSeriesData);
+    }, [rawData, averageData, selectedLocation, getLocationColors]);
 
     // Handle bar click in location chart
     const handleLocationClick = (location: string) => {
+        console.log('handleLocationClick', location);
         setSelectedLocation(location === selectedLocation ? null : location);
     };
     
@@ -1117,7 +1095,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                                 selectedMetric="healthMetrics"
                                 selectedLocation={selectedLocation}
                                 onLocationClick={handleLocationClick}
-                                height={Math.max(500, (locationBarData.y?.length || 0) * 25)} // Adjust height based on number of locations
+                                height={Math.max(500, (locationBarData.y?.length || 0) * 25)}
                             />
                         </Box>
                     </Grid>
@@ -1128,7 +1106,6 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                             data={timeSeriesChartData()}
                             selectedMetric="healthMetrics"
                             height={500}
-                            // showLegend={true}
                         />
                     </Grid>
                 </Grid>
