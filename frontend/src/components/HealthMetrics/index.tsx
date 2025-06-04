@@ -495,49 +495,49 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                     zoneGroup: item.zone_Group,
                     corridor: item.corridor,
                     percentHealth: `${(item['percent Health'] * 100).toFixed(2)}%`,
-                    missingData: item['missing Data'] ?? 0,
-                    detectionUpScore: item['detection Uptime Score'] ?? 0,
-                    pedActuationScore: item['ped Actuation Uptime Score'] ?? 0,
-                    commUtilScore: item['comm Uptime Score'] ?? 0,
-                    cctvUtilScore: item['cctv Uptime Score'] ?? 0,
-                    flashEventsScore: item['flash Events Score'] ?? 0,
-                    detectionUp: item['detection Uptime'] ?? 0,
-                    pedActuation: item['ped Actuation Uptime'] ?? 0,
-                    commUtil: item['comm Uptime'] ?? 0,
-                    cctvUtil: item['cctv Uptime'] ?? 0,
-                    flashEvents: item['flash Events'] ?? 0,
+                    missingData: (item['missing Data'] ?? 0).toFixed(2),
+                    detectionUpScore: `${((item['detection Uptime Score'] ?? 0)).toFixed(2)}`,
+                    pedActuationScore: `${((item['ped Actuation Uptime Score'] ?? 0)).toFixed(2)}`,
+                    commUtilScore: `${((item['comm Uptime Score'] ?? 0)).toFixed(2)}`,
+                    cctvUtilScore: `${((item['cctv Uptime Score'] ?? 0)).toFixed(2)}`,
+                    flashEventsScore: `${((item['flash Events Score'] ?? 0)).toFixed(2)}`,
+                    detectionUp: `${((item['detection Uptime'] ?? 0) * 100).toFixed(2)}%`,
+                    pedActuation: `${((item['ped Actuation Uptime'] ?? 0) * 100).toFixed(2)}%`,
+                    commUtil: `${((item['comm Uptime'] ?? 0) * 100).toFixed(2)}%`,
+                    cctvUtil: `${((item['cctv Uptime'] ?? 0) * 100).toFixed(2)}%`,
+                    flashEvents: (item['flash Events'] ?? 0).toFixed(2),
                 }));
             case 'Operations':
                 return operations.data.map(item => ({
                     zoneGroup: item.zone_Group,
                     corridor: item.corridor,
                     percentHealth: `${(item['percent Health'] * 100).toFixed(2)}%`,
-                    missingData: item['missing Data'] ?? 0,
-                    platoonRatioScore: item['platoon Ratio Score'] ?? 0,
-                    pedDelayScore: item['ped Delay Score'] ?? 0,
-                    splitFailuresScore: item['split Failures Score'] ?? 0,
-                    travelTimeIndexScore: item['travel Time Index Score'] ?? 0,
-                    bufferIndexScore: item['buffer Index Score'] ?? 0,
-                    platoonRatio: item['platoon Ratio'] ?? 0,
-                    pedDelay: item['ped Delay'] ?? 0,
-                    splitFailures: item['split Failures'] ?? 0,
-                    travelTimeIndex: item['travel Time Index'] ?? 0,
-                    bufferIndex: item['buffer Index'] ?? 0,
+                    missingData: `${((item['missing Data'] ?? 0) * 100).toFixed(2)}%`,
+                    platoonRatioScore: `${((item['platoon Ratio Score'] ?? 0)).toFixed(2)}`,
+                    pedDelayScore: `${((item['ped Delay Score'] ?? 0)).toFixed(2)}`,
+                    splitFailuresScore: `${((item['split Failures Score'] ?? 0)).toFixed(2)}`,
+                    travelTimeIndexScore: `${((item['travel Time Index Score'] ?? 0)).toFixed(2)}`,
+                    bufferIndexScore: `${((item['buffer Index Score'] ?? 0)).toFixed(2)}`,
+                    platoonRatio: `${((item['platoon Ratio'] ?? 0)).toFixed(2)}`,
+                    pedDelay: (item['ped Delay'] ?? 0).toFixed(2),
+                    splitFailures: (item['split Failures'] ?? 0).toFixed(2),
+                    travelTimeIndex: (item['travel Time Index'] ?? 0).toFixed(2),
+                    bufferIndex: (item['buffer Index'] ?? 0).toFixed(2),
                 }));
             case 'Safety':
                 return safety.data.map(item => ({
                     zoneGroup: item.zone_Group,
                     corridor: item.corridor,
                     percentHealth: `${(item['percent Health'] * 100).toFixed(2)}%`,
-                    missingData: item['missing Data'] ?? 0,
-                    crashRateIndexScore: item['crash Rate Index Score'] ?? 0,
-                    kabcoCrashSeverityIndexScore: item['kabco Crash Severity Index Score'] ?? 0,
-                    highSpeedIndexScore: item['high Speed Index Score'] ?? 0,
-                    pedInjuryExposureIndexScore: item['ped Injury Exposure Index Score'] ?? 0,
-                    crashRateIndex: item['crash Rate Index'] ?? 0,
-                    kabcoCrashSeverityIndex: item['kabco Crash Severity Index'] ?? 0,
-                    highSpeedIndex: item['high Speed Index'] ?? 0,
-                    pedInjuryExposureIndex: item['ped Injury Exposure Index'] ?? 0,
+                    missingData: `${((item['missing Data'] ?? 0) * 100).toFixed(2)}%`,
+                    crashRateIndexScore: `${((item['crash Rate Index Score'] ?? 0)).toFixed(2)}`,
+                    kabcoCrashSeverityIndexScore: `${((item['kabco Crash Severity Index Score'] ?? 0)).toFixed(2)}`,
+                    highSpeedIndexScore: `${((item['high Speed Index Score'] ?? 0)).toFixed(2)}`,
+                    pedInjuryExposureIndexScore: `${((item['ped Injury Exposure Index Score'] ?? 0)).toFixed(2)}`,
+                    crashRateIndex: (item['crash Rate Index'] ?? 0).toFixed(2),
+                    kabcoCrashSeverityIndex: (item['kabco Crash Severity Index'] ?? 0).toFixed(2),
+                    highSpeedIndex: (item['high Speed Index'] ?? 0).toFixed(2),
+                    pedInjuryExposureIndex: (item['ped Injury Exposure Index'] ?? 0).toFixed(2),
                 }));
             default:
                 return [];
@@ -661,7 +661,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
         <Box sx={{ 
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
+            height: '80%',
             width: '100%',
             minWidth: 0, // Allow shrinking below content width
         }}>
@@ -671,6 +671,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                     flex: 1,
                     overflow: 'auto',
                     width: '100%',
+                    height: '100%',
                     minWidth: 0, // Allow shrinking
                     '& .MuiTable-root': {
                         minWidth: 'max-content',
@@ -678,7 +679,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                     }
                 }}
             >
-                <Table size="small" stickyHeader>
+                <Table size="small" stickyHeader sx={{ height: '100%' }}>
                     <TableHead>
                         <TableRow>
                             {columns.map((column) => (
@@ -1114,7 +1115,6 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                             <LocationBarChart 
                                 data={locationBarData}
                                 selectedMetric="healthMetrics"
-                                selectedLocation={selectedLocation}
                                 onLocationClick={handleLocationClick}
                                 height={Math.max(500, (locationBarData.y?.length || 0) * 25)}
                             />

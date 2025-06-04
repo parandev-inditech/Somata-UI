@@ -1,482 +1,227 @@
-import { Box, Button, Typography, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableFooter, TablePagination, Select, MenuItem, IconButton } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList"
-import FirstPageIcon from "@mui/icons-material/FirstPage"
-import LastPageIcon from "@mui/icons-material/LastPage"
-import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft"
-import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight"
+import { 
+    Box, 
+    Button, 
+    TextField, 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableContainer, 
+    TableHead, 
+    TableRow,
+    TablePagination,
+    Paper,
+    Typography,
+    styled
+} from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { fetchAllSignals } from "../../store/slices/metricsSlice"
 import { consoledebug } from "../../utils/debug";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import { RootState, AppDispatch } from "../../store/store";
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+    '&.MuiTableCell-head': {
+        backgroundColor: '#4285f4',
+        color: theme.palette.common.white,
+        fontWeight: 'bold',
+        padding: theme.spacing(1),
+    },
+    '&.MuiTableCell-body': {
+        padding: theme.spacing(1),
+    },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+    '&:nth-of-type(odd)': {
+        backgroundColor: theme.palette.action.hover,
+    },
+}));
 
 export default function SignalInfo() {
-  useDocumentTitle();
-  const dispatch = useDispatch()
-  const signals = useSelector((state: any) => state.metrics.signals);
-  consoledebug('allSignals in SignalInfo:', signals)
+    useDocumentTitle();
+    const dispatch = useDispatch<AppDispatch>();
+    const signals = useSelector((state: RootState) => state.metrics.signals);
+    consoledebug('allSignals in SignalInfo:', signals);
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [filters, setFilters] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    dispatch(fetchAllSignals());
-  }, []);
+    useEffect(() => {
+        dispatch(fetchAllSignals());
+    }, [dispatch]);
 
-  const handleChangePage = (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
-    setPage(newPage);
-  };
+    const handleChangePage = (event: unknown, newPage: number) => {
+        setPage(newPage);
+    };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
 
-  // Common TableCell styling
-  const headerCellStyle = {
-    backgroundColor: "#2196f3",
-    padding: "8px 16px",
-    borderRight: "1px solid rgba(255, 255, 255, 0.2)",
-  };
+    const handleFilterChange = (columnId: string, value: string) => {
+        setFilters(prev => ({
+            ...prev,
+            [columnId]: value
+        }));
+        setPage(0); // Reset to first page when filtering
+    };
 
-  // Last column doesn't need right border
-  const lastHeaderCellStyle = {
-    ...headerCellStyle,
-    borderRight: "none",
-  };
+    const columns = [
+        { id: 'signalID', label: 'Signal ID' },
+        { id: 'zoneGroup', label: 'Zone Group' },
+        { id: 'zone', label: 'Zone' },
+        { id: 'corridor', label: 'Corridor' },
+        { id: 'subcorridor', label: 'Subcorridor' },
+        { id: 'agency', label: 'Agency' },
+        { id: 'mainStreetName', label: 'Main Street Name' },
+        { id: 'sideStreetName', label: 'Side Street Name' },
+        { id: 'milepost', label: 'Milepost' },
+        { 
+            id: 'asOf', 
+            label: 'As Of',
+            format: (value: string) => value ? new Date(value).toISOString().split('T')[0] : ''
+        },
+        { id: 'duplicate', label: 'Duplicate' },
+        { id: 'include', label: 'Include' },
+        { 
+            id: 'modified', 
+            label: 'Modified',
+            format: (value: string) => value ? new Date(value).toISOString().split('T')[0] : ''
+        },
+        { id: 'note', label: 'Note' },
+        { id: 'latitude', label: 'Latitude' },
+        { id: 'longitude', label: 'Longitude' },
+        { id: 'county', label: 'County' },
+        { id: 'city', label: 'City' },
+        { id: 'priority', label: 'Priority' },
+        { id: 'classification', label: 'Classification' },
+    ];
 
-  return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      {/* Table Container */}
-      <TableContainer sx={{ flex: 1, overflowX: "auto", width: "50%" }}>
-        <Table stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '150px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Signal ID"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '150px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Zone Group"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '120px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Zone"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '140px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Corridor"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '150px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Subcorridor"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '130px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Agency"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '180px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Main Street Name"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '180px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Side Street Name"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '130px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Milepost"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '120px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="As Of"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '140px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Duplicate"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '120px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Include"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '140px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Modified"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '120px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Note"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '130px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Latitude"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '140px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Longitude"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '130px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="County"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '120px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="City"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: '130px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Priority"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ ...lastHeaderCellStyle, minWidth: '160px' }}>
-                <TextField 
-                  size="small" 
-                  variant="outlined" 
-                  fullWidth
-                  label="Classification"
-                  sx={{
-                    '& .MuiInputLabel-root': {
-                      color: 'white', // Change the default color
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: 'white', // Change the color when focused
-                    },
-                  }}
-                />
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-          {signals.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((signal, index) => (
-            <TableRow key={index}>
-              <TableCell>{signal.signalID}</TableCell>
-              <TableCell>{signal.zoneGroup}</TableCell>
-              <TableCell>{signal.zone}</TableCell>
-              <TableCell>{signal.corridor}</TableCell>
-              <TableCell>{signal.subcorridor}</TableCell>
-              <TableCell>{signal.agency}</TableCell>
-              <TableCell>{signal.mainStreetName}</TableCell>
-              <TableCell>{signal.sideStreetName}</TableCell>
-              <TableCell>{signal.milepost}</TableCell>
-              <TableCell>{signal.asOf}</TableCell>
-              <TableCell>{signal.duplicate}</TableCell>
-              <TableCell>{signal.include}</TableCell>
-              <TableCell>{signal.modified}</TableCell>
-              <TableCell>{signal.note}</TableCell>
-              <TableCell>{signal.county}</TableCell>
-              <TableCell>{signal.city}</TableCell>
-              <TableCell>{signal.latitude}</TableCell>
-              <TableCell>{signal.longitude}</TableCell>
-              <TableCell>{signal.priority}</TableCell>
-              <TableCell>{signal.classification}</TableCell>
-            </TableRow>
-          ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+    // Filter data based on search inputs
+    const filteredData = signals.filter(signal => {
+        return Object.keys(filters).every(key => {
+            const filterValue = filters[key]?.toLowerCase();
+            if (!filterValue) return true;
+            
+            const cellValue = String(signal[key as keyof typeof signal] || '').toLowerCase();
+            return cellValue.includes(filterValue);
+        });
+    });
 
-      {/* Bottom Controls */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          p: 1,
-          borderTop: "1px solid rgba(224, 224, 224, 1)",
-        }}
-      >
-        {/* Export Button */}
-        <Button
-          variant="contained"
-          sx={{
-            backgroundColor: "#2196f3",
-            textTransform: "none",
-            borderRadius: 1,
-            boxShadow: 1,
-          }}
-        >
-          Export To Excel
-        </Button>
-
-        {/* Pagination Controls */}
-        {/* <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Typography variant="body2" sx={{ mr: 1 }}>
-            Items per page:
-          </Typography>
-          <Select
-            value={rowsPerPage}
-            size="small"
-            onChange={(e) => handleChangeRowsPerPage(e)}
-            sx={{
-              minWidth: 70,
-              height: 32,
-              mr: 2,
-              "& .MuiSelect-select": {
-                py: 0.5,
-              },
-            }}
-          >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={25}>25</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
-          </Select>
-
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            {signals.length > 0 ? `${page * rowsPerPage + 1}-${Math.min((page + 1) * rowsPerPage, signals.length)} of ${signals.length}` : "0-0 of 0"}
-          </Typography>
-
-          <Box sx={{ display: "flex" }}>
-            <IconButton size="small" disabled={page === 0} onClick={(e) => handleChangePage(e, 0)}>
-              <FirstPageIcon />
-            </IconButton>
-            <IconButton size="small" disabled={page === 0} onClick={(e) => handleChangePage(e, page - 1)}>
-              <KeyboardArrowLeft />
-            </IconButton>
-            <IconButton
-              size="small"
-              disabled={page >= Math.ceil(signals.length / rowsPerPage) - 1}
-              onClick={(e) => handleChangePage(e, page + 1)}
-            >
-              <KeyboardArrowRight />
-            </IconButton>
-            <IconButton
-              size="small"
-              disabled={page >= Math.ceil(signals.length / rowsPerPage) - 1}
-              onClick={(e) => handleChangePage(e, Math.ceil(signals.length / rowsPerPage) - 1)}
-            >
-              <LastPageIcon />
-            </IconButton>
-          </Box>
-        </Box> */}
-      </Box>
-    </Box>
-  )
+    return (
+        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 100px)' }}>
+                <Table stickyHeader aria-label="sticky table">
+                    <TableHead>
+                        <TableRow>
+                            {columns.map((column) => (
+                                <StyledTableCell key={column.id} style={{ minWidth: 150 }}>
+                                    <TextField 
+                                        size="small"
+                                        variant="outlined"
+                                        label={column.label}
+                                        value={filters[column.id] || ''}
+                                        onChange={(e) => handleFilterChange(column.id, e.target.value)}
+                                        fullWidth
+                                        margin="dense"
+                                        sx={{ 
+                                            mt: 1,
+                                            minWidth: 120,
+                                            '& .MuiOutlinedInput-root': { 
+                                                bgcolor: '#0070ed',
+                                                color: 'white',
+                                                '& fieldset': {
+                                                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                                                },
+                                                '&:hover fieldset': {
+                                                    borderColor: 'white',
+                                                },
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: 'white',
+                                                },
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                color: 'white',
+                                                fontSize: '0.75rem',
+                                                '&::placeholder': {
+                                                    color: 'rgba(255, 255, 255, 0.7)',
+                                                    opacity: 1
+                                                }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: 'white',
+                                                fontSize: '0.75rem',
+                                            },
+                                            '& .MuiInputLabel-root.Mui-focused': {
+                                                fontWeight: 'bold'
+                                            },
+                                        }}
+                                    />
+                                </StyledTableCell>
+                            ))}
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {filteredData
+                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                            .map((signal, index) => (
+                                <StyledTableRow hover role="checkbox" tabIndex={-1} key={index}>
+                                    {columns.map((column) => {
+                                        const value = signal[column.id as keyof typeof signal];
+                                        return (
+                                            <StyledTableCell key={column.id} style={{ minWidth: 150, textAlign: 'center' }}>
+                                                {column.format && typeof value === 'string'
+                                                    ? column.format(value)
+                                                    : value}
+                                            </StyledTableCell>
+                                        );
+                                    })}
+                                </StyledTableRow>
+                            ))}
+                        {filteredData.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
+                                    <Typography variant="body1" color="text.secondary">
+                                        No results found
+                                    </Typography>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+            <Box sx={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 1,
+                borderTop: 1,
+                borderColor: 'divider',
+            }}>
+                <Button
+                    variant="contained"
+                    sx={{
+                        backgroundColor: "#2196f3",
+                        textTransform: "none",
+                        borderRadius: 1,
+                        boxShadow: 1,
+                    }}
+                >
+                    Export To Excel
+                </Button>
+                <TablePagination
+                    rowsPerPageOptions={[10, 25, 50]}
+                    component="div"
+                    count={filteredData.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                />
+            </Box>
+        </Paper>
+    );
 };
