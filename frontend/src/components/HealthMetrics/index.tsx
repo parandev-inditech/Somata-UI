@@ -161,8 +161,35 @@ const RegionStatus = () => {
 
     useEffect(() => {
         const currentDate = new Date();
-        const formattedMonth = `${currentDate.getMonth() + 1 < 10 ? '0' : ''}${currentDate.getMonth() + 1}-01-${currentDate.getFullYear()}`;
-        dispatch(fetchRegionAverages(formattedMonth));
+        const yyyy = currentDate.getFullYear();
+        const mm = currentDate.getMonth() + 1; // Months start at 0!
+        const dd = currentDate.getDate();
+
+        let startMonth;
+        let startYear;
+
+        if (dd < 10) {
+            // Use previous month
+            if (mm === 1) {
+                startMonth = 12;
+                startYear = yyyy - 1;
+            } else {
+                startMonth = mm - 1;
+                startYear = yyyy;
+            }
+        } else {
+            // Use current month
+            startMonth = mm;
+            startYear = yyyy;
+        }
+
+        // Format the month to ensure two digits
+        startMonth = startMonth < 10 ? `0${startMonth}` : startMonth;
+
+        // Format as MM-01-YYYY for the API
+        const startDate = `${startMonth}-01-${startYear}`;
+        
+        dispatch(fetchRegionAverages(startDate));
     }, [dispatch]);
 
     if (regionsState.loading) {
@@ -735,7 +762,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                             .map((row, index) => (
                                 <StyledTableRow key={index}>
                                     {columns.map((column) => (
-                                        <StyledTableCell key={column.id} sx={{ minWidth: 150, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <StyledTableCell key={column.id} sx={{ minWidth: 150, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center' }}>
                                             {row[column.id as keyof typeof row]}
                                         </StyledTableCell>
                                     ))}
@@ -743,7 +770,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                         ))}
                         {filteredData.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
+                                <TableCell colSpan={columns.length} align="center" sx={{ py: 3, textAlign: 'center' }}>
                                     <Typography variant="body1" color="text.secondary">
                                         No results found
                                     </Typography>
