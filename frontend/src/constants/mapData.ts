@@ -1,4 +1,4 @@
-const chartTitles = {
+export const chartTitles = {
     "throughput": {
       "metricCardTitle": "Average vehicles per hour",
       "bottomChartTitle": "Throughput (peak veh/hr)",
@@ -91,5 +91,26 @@ const chartTitles = {
     }
   }
 
+  // Map metric IDs to their API keys
+export const metricApiKeys: { [key: string]: string } = {
+  // Operations metrics
+  dailyTrafficVolumes: 'vpd',
+  throughput: 'tp',
+  arrivalsOnGreen: 'aogd',
+  progressionRatio: 'prd',
+  spillbackRatio: 'qsd',
+  peakPeriodSplitFailures: 'sfd',
+  offPeakSplitFailures: 'sfo',
+  travelTimeIndex: 'tti',
+  planningTimeIndex: 'pti',
+  
+  // Maintenance metrics
+  detectorUptime: 'du',
+  pedestrianPushbuttonActivity: 'papd',
+  pedestrianPushbuttonUptime: 'pau',
+  cctvUptime: 'cctv',
+  communicationUptime: 'cu'
+};
 
-export default chartTitles;
+
+export default {chartTitles, metricApiKeys};

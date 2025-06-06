@@ -1,6 +1,6 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
-import chartTitles from '../../constants/mapData';
+import { chartTitles } from '../../constants/mapData';
 import { consoledebug } from '../../utils/debug';
 
 interface TimeSeriesChartProps {

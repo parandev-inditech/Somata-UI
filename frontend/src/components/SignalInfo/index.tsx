@@ -199,7 +199,9 @@ export default function SignalInfo() {
         <Box sx={{ 
                 display: 'flex',
                 position: 'absolute',
-                width: '100%',
+                justifyContent: 'space-between',
+                maxWidth: '100vw',
+                width: '-webkit-fill-available',
                 p: 2,
                 borderTop: 1,
                 borderColor: 'divider',
@@ -216,14 +218,6 @@ export default function SignalInfo() {
                     Export To Excel
                 </Button>
                 <TablePagination
-                sx={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    flexWrap: 'wrap-reverse',
-                    width: '85%',
-                    position: 'absolute',
-                }}
                     rowsPerPageOptions={[10, 25, 50]}
                     component="div"
                     count={filteredData.length}

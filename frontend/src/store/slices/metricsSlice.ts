@@ -6,7 +6,7 @@ import {
     RegionAverage,
     FetchMetricsParams,
     healthMetricsApi 
-} from '../../services/healthMetricsApi';
+} from '../../services/api/healthMetricsApi';
 import { FilterParams, MetricData, MetricsFilterRequest } from '../../types/api.types';
 import { metricsApi } from '../../services/api/metricsApi';
 import { consoledebug } from '../../utils/debug';

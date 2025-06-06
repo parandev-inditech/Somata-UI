@@ -10,68 +10,111 @@ import Grid from "@mui/material/Grid"
 import Tabs from "@mui/material/Tabs"
 import Tab from "@mui/material/Tab"
 import CircularProgress from "@mui/material/CircularProgress"
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward"
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-import RemoveIcon from "@mui/icons-material/Remove"
+
 import MapBox from "../../components/MapBox"
-import {
-  fetchMetricData,
-  fetchLocationMetrics,
-  fetchTimeSeriesData,
-  fetchMapData,
-  metricApiKeys,
-  type MetricData,
-  type LocationMetric,
-  type TimeSeriesData,
-  type MapPoint,
-} from "../../services/api"
 import mapSettings from "../../utils/mapSettings"
 import LocationBarChart from "../charts/LocationBarChart"
 import TimeSeriesChart from "../charts/TimeSeriesChart"
+import { useAppDispatch, useAppSelector } from '../../hooks/useTypedSelector'
+import { 
+  fetchStraightAverage,
+  fetchAllSignals,
+  fetchMetricsFilter,
+  fetchMetricsAverage,
+  fetchSignalsFilterAverage
+} from '../../store/slices/metricsSlice'
+import { MetricsFilterRequest } from '../../types/api.types'
 import { useSelector } from "react-redux"
 import { selectFilterParams } from "../../store/slices/filterSlice"
 import { RootState } from "../../store/store"
-import chartTitles from "../../constants/mapData"
+import { chartTitles } from "../../constants/mapData"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
 
 // Define the available metrics
 const metrics = [
-  { id: "dailyTrafficVolumes", label: "Daily Traffic Volumes" },
-  { id: "throughput", label: "Throughput" },
-  { id: "arrivalsOnGreen", label: "Arrivals on Green" },
-  { id: "progressionRatio", label: "Progression Ratio" },
-  { id: "spillbackRatio", label: "Spillback Ratio" },
-  { id: "peakPeriodSplitFailures", label: "Peak Period Split Failures" },
-  { id: "offPeakSplitFailures", label: "Off-Peak Split Failures" },
-  { id: "travelTimeIndex", label: "Travel Time Index" },
-  { id: "planningTimeIndex", label: "Planning Time Index" },
+  { id: "dailyTrafficVolumes", label: "Daily Traffic Volumes", key: "vpd" },
+  { id: "throughput", label: "Throughput", key: "tp" },
+  { id: "arrivalsOnGreen", label: "Arrivals on Green", key: "aogd" },
+  { id: "progressionRatio", label: "Progression Ratio", key: "prd" },
+  { id: "spillbackRatio", label: "Spillback Ratio", key: "qsd" },
+  { id: "peakPeriodSplitFailures", label: "Peak Period Split Failures", key: "sfd" },
+  { id: "offPeakSplitFailures", label: "Off-Peak Split Failures", key: "sfo" },
+  { id: "travelTimeIndex", label: "Travel Time Index", key: "tti" },
+  { id: "planningTimeIndex", label: "Planning Time Index", key: "pti" },
 ]
 
-export default function Operations() {
-  // State for filters
-  const [dateRange, setDateRange] = useState("priorYear")
-  const [dateAggregation, setDateAggregation] = useState("monthly")
-  const [region, setRegion] = useState("Central Metro")
+// Types for component-specific data
+interface LocationMetric {
+  location: string;
+  value: number;
+}
 
+interface TimeSeriesData {
+  date: string;
+  value: number;
+  location: string;
+}
+
+interface MapPoint {
+  lat: number;
+  lon: number;
+  value: number;
+  name: string;
+  signalID?: string;
+  mainStreet?: string;
+  sideStreet?: string;
+}
+
+
+
+const metricValueKeys: Record<string, string> = {
+  dailyTrafficVolumes: "vpd",
+  throughput: "vph",
+  arrivalsOnGreen: "aog",
+  progressionRatio: "pr", 
+  spillbackRatio: "qs_freq",
+  peakPeriodSplitFailures: "sf_freq",
+  offPeakSplitFailures: "sf_freq",
+  travelTimeIndex: "tti",
+  planningTimeIndex: "pti"
+};
+
+export default function Operations() {
   // State for selected metric
   const [selectedMetric, setSelectedMetric] = useState("dailyTrafficVolumes")
+  const [selectedMetricKey, setSelectedMetricKey] = useState("vpd")
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
 
-  // State for data
-  const [loading, setLoading] = useState(true)
-  const [metricData, setMetricData] = useState<MetricData | null>(null)
+  // Local state for component-specific data
   const [locationMetrics, setLocationMetrics] = useState<LocationMetric[]>([])
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([])
   const [mapData, setMapData] = useState<MapPoint[]>([])
+
   const commonFilterParams = useSelector(selectFilterParams);
   const filtersApplied = useSelector((state: RootState) => state.filter.filtersApplied);
+  
+  // Redux state
+  const dispatch = useAppDispatch();
+  const { 
+    signals,
+    straightAverage,
+    metricsFilter,
+    metricsAverage,
+    signalsFilterAverage
+  } = useAppSelector(state => state.metrics);
+  
+  const loading = straightAverage.loading || 
+                  metricsFilter.loading || 
+                  metricsAverage.loading || 
+                  signalsFilterAverage.loading;
+
   const currentMetric = metrics.find(m => m.id === selectedMetric);
   useDocumentTitle({
     route: 'Operations',
     tab: currentMetric?.label
   });
 
-  // Plotly's default color palette
+  // Create a mapping of locations to colors that will be consistent between charts
   const getLocationColor = (index: number) => {
     const colors = [
       '#1f77b4', // blue
@@ -88,7 +131,6 @@ export default function Operations() {
     return colors[index % colors.length];
   };
 
-  // Create a mapping of locations to colors that will be consistent between charts
   const getLocationColors = () => {
     const uniqueLocations = Array.from(new Set(locationMetrics.map(item => item.location)));
     return Object.fromEntries(uniqueLocations.map((location, index) => [location, getLocationColor(index)]));
@@ -96,37 +138,112 @@ export default function Operations() {
 
   const locationColors = getLocationColors();
 
+  // Find the metric key for the selected metric
+  useEffect(() => {
+    const metric = metrics.find(m => m.id === selectedMetric);
+    if (metric) {
+      setSelectedMetricKey(metric.key);
+    }
+  }, [selectedMetric]);
+
   // Fetch data when filters or selected metric changes
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       try {
-        // Fetch all data in parallel
-        const [metricResult, locationsResult, timeSeriesResult, mapResult] = await Promise.all([
-          fetchMetricData(selectedMetric, commonFilterParams),
-          fetchLocationMetrics(selectedMetric, commonFilterParams),
-          fetchTimeSeriesData(selectedMetric, commonFilterParams),
-          fetchMapData(selectedMetric, commonFilterParams),
-        ]);
-
-        setMetricData(metricResult);
-        setLocationMetrics(locationsResult || []);
-        setTimeSeriesData(timeSeriesResult || []);
-        setMapData(mapResult || []);
+        // Create common params object
+        const params: MetricsFilterRequest = {
+          source: "main",
+          measure: selectedMetricKey
+        };
+        
+        // Dispatch actions to fetch data
+        dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+        dispatch(fetchAllSignals());
+        dispatch(fetchSignalsFilterAverage({ params, filterParams: commonFilterParams }));
+        dispatch(fetchMetricsAverage({ 
+          params: { ...params, dashboard: false }, 
+          filterParams: commonFilterParams 
+        }));
+        dispatch(fetchMetricsFilter({ params, filterParams: commonFilterParams }));
       } catch (error) {
-        console.error("Error fetching data:", error);
-        // Set empty data on error
-        setMetricData(null);
-        setLocationMetrics([]);
-        setTimeSeriesData([]);
-        setMapData([]);
-      } finally {
-        setLoading(false);
+        console.error("Error dispatching Redux actions:", error);
       }
     };
 
     fetchData();
-  }, [selectedMetric, filtersApplied]);
+  }, [selectedMetricKey, filtersApplied]);
+
+  // Process location metrics from Redux state
+  useEffect(() => {
+    if (metricsAverage.data && Array.isArray(metricsAverage.data)) {
+      const sortedMetrics = metricsAverage.data.map((item: { label: string; avg: number }) => ({
+        location: item.label,
+        value: item.avg || 0
+      })).sort((a: LocationMetric, b: LocationMetric) => a.value - b.value);
+      setLocationMetrics(sortedMetrics);
+    }
+  }, [metricsAverage.data]);
+
+  // Process time series data from Redux state
+  useEffect(() => {
+    if (metricsFilter.data && Array.isArray(metricsFilter.data)) {
+      const processedTimeSeriesData = metricsFilter.data.map((item: Record<string, string | number>) => {
+        const metricValue = item[metricValueKeys[selectedMetric]] || 0;
+        return {
+          date: formatDate((item.month as string) || ''),
+          value: parseFloat(String(metricValue)),
+          location: (item.corridor as string) || 'Unknown'
+        };
+      });
+      setTimeSeriesData(processedTimeSeriesData);
+    }
+  }, [metricsFilter.data, selectedMetric]);
+
+  // Process map data from Redux state
+  useEffect(() => {
+    if (signals.length > 0 && signalsFilterAverage.data && Array.isArray(signalsFilterAverage.data)) {
+      // Create a map of signal IDs to metric values
+      const metricMap = new Map<string, number>();
+      signalsFilterAverage.data.forEach((item: { label: string; avg: number }) => {
+        metricMap.set(item.label, item.avg);
+      });
+      
+      // Map signals to map points
+      const mapPoints = signals
+        .filter((signal) => signal.latitude && signal.longitude && signal.signalID)
+        .map((signal) => {
+          const value = metricMap.get(signal.signalID!) || 0;
+          
+          return {
+            lat: signal.latitude,
+            lon: signal.longitude,
+            value,
+            name: signal.mainStreetName ? (signal.sideStreetName ? 
+              `${signal.mainStreetName} @ ${signal.sideStreetName}` : 
+              signal.mainStreetName) : 
+              `Signal ${signal.signalID}`,
+            signalID: signal.signalID!,
+            mainStreet: signal.mainStreetName,
+            sideStreet: signal.sideStreetName
+          };
+        });
+
+      setMapData(mapPoints);
+    }
+  }, [signals, signalsFilterAverage.data]);
+
+  // Format date string
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    } catch {
+      return dateString;
+    }
+  };
 
   // Handle metric tab change
   const handleMetricChange = (event: React.SyntheticEvent, newValue: string) => {
@@ -134,8 +251,7 @@ export default function Operations() {
   }
 
   // Format the metric value for display
-  const formatMetricValue = (value: number | string, unit?: string) => {
-    console.log('formatMetricValue', value);
+  const formatMetricValue = (value: number | string) => {
     if (typeof value === "number") {
       // Format based on the metric type
       if (
@@ -288,7 +404,6 @@ export default function Operations() {
       opacity: 0.8,
     },
     text: mapData.filter(point => point.value !== 0).map((point) => {
-      const apiKey = metricApiKeys[selectedMetric];
       // Check if data is unavailable
       if (point.value === -1) {
         return `${point.signalID}<br>${point.name}<br>No data available`;
@@ -297,18 +412,6 @@ export default function Operations() {
     }),
     hoverinfo: "text",
   };
-  console.log('mapPlotData', mapPlotData);
-
-  const mapLayout = {
-    autosize: true,
-    hovermode: "closest",
-    mapbox: {
-      style: "carto-positron",
-      center: { lat: 33.789, lon: -84.388 },
-      zoom: 8,
-    },
-    margin: { r: 0, t: 0, b: 0, l: 0 },
-  }
 
   // Get the appropriate legend for the map based on the selected metric
   const getMapLegend = () => {
@@ -318,9 +421,6 @@ export default function Operations() {
     if (settings) {
       return (
         <>
-          {/* <Typography variant="subtitle2" gutterBottom>
-            {settings.label}
-          </Typography> */}
           {settings.ranges.map((range, index) => (
             <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }} key={index}>
               <Box sx={{ width: 8, height: 8, bgcolor: settings.legendColors[index], mr: 1, borderRadius: 4 }} />
@@ -349,6 +449,7 @@ export default function Operations() {
     return chartTitles[selectedMetric as keyof typeof chartTitles]["metricCardTitle"]
   }
 
+  const metricData = straightAverage.data;
   console.log('metricData', metricData);
 
   return (
@@ -402,14 +503,14 @@ export default function Operations() {
                   minHeight: "130px"
                 }}>
                   <Typography variant="h6" component="div" gutterBottom sx={{ fontWeight: '500', fontSize: '24px' }}>
-                    {metricData && formatMetricValue(metricData.value, metricData.unit)}
+                    {metricData && formatMetricValue(metricData.avg)}
                   </Typography>
                   <Typography variant="subtitle1" color="text.secondary" gutterBottom>
                     {getMetricSubtitle()}
                   </Typography>
                 </Paper>
 
-                {/* Trend Indicator Card */}
+                {/* Trend Indicator Card - Placeholder */}
                 <Paper sx={{ 
                   p: 3, 
                   display: "flex", 
@@ -419,38 +520,12 @@ export default function Operations() {
                   flex: 1,
                   minHeight: "130px"
                 }}>
-                  {metricData && metricData.change !== undefined && (
-                    <>
-                      <Typography
-                        variant="h6"
-                        component="div"
-                        sx={{
-                          color:
-                            metricData.change > 0
-                              ? "success.main"
-                              : metricData.change < 0
-                                ? "error.main"
-                                : "text.secondary",
-                          display: "flex",
-                          alignItems: "center",
-                          fontWeight: '500',
-                          fontSize: '24px'
-                        }}
-                      >
-                        {Math.abs(metricData.change).toFixed(1)}%
-                        {metricData.change > 0 ? (
-                          <ArrowUpwardIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        ) : metricData.change < 0 ? (
-                          <ArrowDownwardIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        ) : (
-                          <RemoveIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        )}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {metricData?.changeLabel}
-                      </Typography>
-                    </>
-                  )}
+                  <Typography variant="h6" component="div" sx={{ fontWeight: '500', fontSize: '24px' }}>
+                  {metricData && Math.abs(metricData.delta * 100).toFixed(1)}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Change from prior period
+                  </Typography>
                 </Paper>
               </Box>
             </Grid>
@@ -518,7 +593,6 @@ export default function Operations() {
                       <LocationBarChart 
                         data={locationBarData}
                         selectedMetric={selectedMetric}
-                        selectedLocation={selectedLocation}
                         onLocationClick={handleLocationClick}
                         height={Math.max(500, locationMetrics.length * 10)} // Adjust height based on number of locations
                       />

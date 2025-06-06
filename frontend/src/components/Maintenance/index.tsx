@@ -17,7 +17,7 @@ import Plot from "react-plotly.js"
 import MapBox from "../../components/MapBox"
 import LocationBarChart from "../../components/charts/LocationBarChart"
 import TimeSeriesChart from "../../components/charts/TimeSeriesChart"
-import { metricApiKeys } from "../../services/api"
+import { metricApiKeys, chartTitles } from "../../constants/mapData"
 import mapSettings from "../../utils/mapSettings"
 import { useAppDispatch, useAppSelector } from '../../hooks/useTypedSelector'
 import { 
@@ -31,7 +31,6 @@ import { MetricsFilterRequest } from '../../types/api.types'
 import { useSelector } from "react-redux"
 import { selectFilterParams } from "../../store/slices/filterSlice"
 import { RootState } from "../../store/store"
-import chartTitles from "../../constants/mapData"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
 
 // Define the available metrics
