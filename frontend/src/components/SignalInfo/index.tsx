@@ -112,6 +112,7 @@ export default function SignalInfo() {
     });
 
     return (
+        <>
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
             <TableContainer sx={{ maxHeight: 'calc(100vh - 100px)' }}>
                 <Table stickyHeader aria-label="sticky table">
@@ -193,11 +194,13 @@ export default function SignalInfo() {
                     </TableBody>
                 </Table>
             </TableContainer>
-            <Box sx={{ 
+            
+        </Paper>
+        <Box sx={{ 
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 1,
+                position: 'absolute',
+                width: '100%',
+                p: 2,
                 borderTop: 1,
                 borderColor: 'divider',
             }}>
@@ -213,6 +216,14 @@ export default function SignalInfo() {
                     Export To Excel
                 </Button>
                 <TablePagination
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    flexWrap: 'wrap-reverse',
+                    width: '85%',
+                    position: 'absolute',
+                }}
                     rowsPerPageOptions={[10, 25, 50]}
                     component="div"
                     count={filteredData.length}
@@ -222,6 +233,6 @@ export default function SignalInfo() {
                     onRowsPerPageChange={handleChangeRowsPerPage}
                 />
             </Box>
-        </Paper>
+        </>
     );
 };
