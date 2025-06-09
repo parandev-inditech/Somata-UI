@@ -582,6 +582,8 @@ export default function Maintenance() {
     // }
   }
 
+  const hideMap = selectedMetric === "cctvUptime";
+
   return (
     <Box sx={{ p: 2 }}>
       {/* Metric Tabs */}
@@ -614,10 +616,10 @@ export default function Maintenance() {
           {/* Main Content */}
           <Grid container spacing={2}>
             {/* Metric Display */}
-            <Grid size={{xs: 12, md: 4}}>
+            <Grid size={{xs: 12, md: hideMap ? 6 : 4}}>
               <Box sx={{ 
                 display: 'flex', 
-                flexDirection: 'column', 
+                flexDirection: hideMap ? 'row' : 'column', 
                 gap: 2, 
                 height: '100%'
               }}>
@@ -631,7 +633,7 @@ export default function Maintenance() {
                   flex: 1,
                   minHeight: "130px"
                 }}>
-                  <Typography variant="h3" component="div" gutterBottom>
+                  <Typography variant="h6" component="div" gutterBottom sx={{ fontWeight: '500', fontSize: '24px' }}>
                     {metricData && formatMetricValue(metricData.avg)}
                   </Typography>
                   <Typography variant="subtitle1" color="text.secondary" gutterBottom>
@@ -685,7 +687,7 @@ export default function Maintenance() {
             </Grid>
 
             {/* Map */}
-            <Grid size={{xs: 12, md: 8}}>
+            {hideMap ? null : <Grid size={{xs: 12, md: 8}}>
               <Paper sx={{ 
                 p: 2, 
                 height: "100%", 
@@ -702,21 +704,7 @@ export default function Maintenance() {
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                       <CircularProgress />
                     </Box>
-                  ) : selectedMetric === "cctvUptime" ? (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'center', 
-                      alignItems: 'center', 
-                      height: '100%',
-                      textAlign: 'center'
-                    }}>
-                      {/* <Typography variant="h6" color="text.secondary">
-                        Map view is not available for CCTV Uptime
-                      </Typography> */}
-                    </Box>
-                  ) : (
-                    <>
-                      <MapBox 
+                  ) :  <MapBox 
                         data={mapData.length > 0 ? [mapPlotData as any] : []}
                         isRawTraces={true}
                         loading={false}
@@ -725,11 +713,10 @@ export default function Maintenance() {
                         zoom={11}
                         renderLegend={getMapLegend}
                       />
-                    </>
-                  )}
+                  }
                 </Box>
               </Paper>
-            </Grid>
+            </Grid>}
 
             {/* Bottom Charts */}
             <Grid size={{xs: 12}}>

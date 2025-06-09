@@ -451,6 +451,7 @@ export default function Operations() {
 
   const metricData = straightAverage.data;
   console.log('metricData', metricData);
+  const hideMap = selectedMetric === "travelTimeIndex" || selectedMetric === "planningTimeIndex";
 
   return (
     <Box sx={{ p: 2 }}>
@@ -475,7 +476,7 @@ export default function Operations() {
           <Tab key={metric.id} label={metric.label} value={metric.id} />
         ))}
       </Tabs>
-
+      12
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
           <CircularProgress />
@@ -485,10 +486,10 @@ export default function Operations() {
           {/* Main Content */}
           <Grid container spacing={2}>
             {/* Metric Display */}
-            <Grid size={{xs: 12, md: 4}}>
+            <Grid size={{xs: 12, md: hideMap ? 6 : 4}}>
               <Box sx={{ 
                 display: 'flex', 
-                flexDirection: 'column', 
+                flexDirection: hideMap ? 'row' : 'column', 
                 gap: 2, 
                 height: '100%'
               }}>
@@ -531,6 +532,7 @@ export default function Operations() {
             </Grid>
 
             {/* Map */}
+            {hideMap ? null : (
             <Grid size={{xs: 12, md: 8}}>
               <Paper sx={{ 
                 p: 2, 
@@ -548,21 +550,7 @@ export default function Operations() {
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                       <CircularProgress />
                     </Box>
-                  ) : selectedMetric === "travelTimeIndex" || selectedMetric === "planningTimeIndex" ? (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'center', 
-                      alignItems: 'center', 
-                      height: '100%',
-                      textAlign: 'center'
-                    }}>
-                      {/* <Typography variant="h6" color="text.secondary">
-                        Map view is not available for {selectedMetric === "travelTimeIndex" ? "Travel Time Index" : "Planning Time Index"}
-                      </Typography> */}
-                    </Box>
-                  ) : (
-                    <>
-                      <MapBox 
+                  ) :  <MapBox 
                         data={mapData.length > 0 ? [mapPlotData as any] : []}
                         isRawTraces={true}
                         loading={false}
@@ -570,11 +558,11 @@ export default function Operations() {
                         zoom={11}
                         renderLegend={getMapLegend}
                       />
-                    </>
-                  )}
+                  }
                 </Box>
               </Paper>
             </Grid>
+            )}  
 
             {/* Bottom Charts */}
             <Grid size={{xs: 12}}>
