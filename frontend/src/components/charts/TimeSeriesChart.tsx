@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Plot from 'react-plotly.js';
 import { chartTitles } from '../../constants/mapData';
 import { consoledebug } from '../../utils/debug';
@@ -18,16 +18,8 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   width = "100%",
   showLegend = false
 }) => {
-  const getYAxisTitle = () => {
-    switch (selectedMetric) {
-      case "throughput":
-        return "Vehicles per Hour Trend";
-      case "arrivalsOnGreen":
-        return "Weekly Trend";
-      default:
-        return "Trend";
-    }
-  };
+
+  const [hoveredTrace, setHoveredTrace] = useState<number | null>(null);
 
   const getDtick = () => {
     switch (selectedMetric) {
@@ -63,22 +55,41 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     return !["travelTimeIndex", "planningTimeIndex"].includes(selectedMetric);
   };
 
+  const handleHover = (event: { points: Array<{ curveNumber: number }> }) => {
+    if (event?.points?.[0]) {
+      setHoveredTrace(event.points[0].curveNumber);
+    }
+  };
+
+  const handleUnhover = () => {
+    setHoveredTrace(null);
+  };
+
+  // Enhanced data with dynamic line highlighting
+  const enhancedData = data.map((trace: Record<string, any>, index: number) => ({
+    ...trace,
+    line: {
+      ...trace.line,
+      width: hoveredTrace === null ? 2 : (hoveredTrace === index ? 4 : 1),
+    },
+    opacity: hoveredTrace === null ? 1 : (hoveredTrace === index ? 1 : 0.4),
+  }));
+
   consoledebug('chartTitles', selectedMetric)
   return (
     <Plot
-      data={data}
+      data={enhancedData}
       layout={{
         autosize: true,
         height,
         margin: { l: 50, r: 10, t: 10, b: 50 },
         xaxis: { 
           title: {
-            text: chartTitles[selectedMetric]["timeSeriesChartTitle"],
+            text: chartTitles[selectedMetric as keyof typeof chartTitles]["timeSeriesChartTitle"],
             standoff: 40,
           },
         },
         yaxis: {
-          // title: getYAxisTitle(),
           dtick: getDtick(),
           tickformat: getTickFormat(),
           range: getRange(),
@@ -86,8 +97,16 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         },
         showlegend: showLegend,
         legend: { x: 0, y: 1 },
+        hovermode: 'closest',
+      }}
+      config={{
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        displaylogo: false,
+        responsive: true,
       }}
       style={{ width, height: "100%" }}
+      onHover={handleHover}
+      onUnhover={handleUnhover}
     />
   );
 };
