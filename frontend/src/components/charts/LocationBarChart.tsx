@@ -1,24 +1,38 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
-import chartTitles from '../../constants/mapData';
+import { chartTitles } from '../../constants/mapData';
+
+interface LocationBarData {
+  x: number[];
+  y: string[];
+  type: string;
+  orientation: string;
+  marker: {
+    color: string[];
+    opacity: number[];
+  };
+  hovertemplate: string;
+}
 
 interface LocationBarChartProps {
-  data: any;
+  data: LocationBarData;
   selectedMetric: string;
   height?: number;
   width?: string | number;
-  selectedLocation?: string | null;
   onLocationClick?: (location: string) => void;
 }
 
 const LocationBarChart: React.FC<LocationBarChartProps> = ({
   data,
   selectedMetric,
-  height = 450,
+  height = 450, // Default height matches TimeSeriesChart default
   width = "100%",
-  selectedLocation,
   onLocationClick
 }) => {
+  const mainChartRef = useRef(null);
+  const xAxisRef = useRef(null);
+  const [xRange, setXRange] = useState<[number, number]>([0, 100]);
+
   const getAxisTitle = () => {
     switch (selectedMetric) {
       case "throughput":
@@ -60,72 +74,153 @@ const LocationBarChart: React.FC<LocationBarChartProps> = ({
     return undefined;
   };
 
-  const getAutorange = () => {
-    return !["travelTimeIndex", "planningTimeIndex"].includes(selectedMetric);
-  };
+  // Align x-axis with TimeSeriesChart dynamically based on height
+  // TimeSeriesChart: height=height, bottom margin=50px → x-axis at (height - 50)px from top
+  // LocationBarChart: Need x-axis to also appear at (height - 50)px from top
+  const timeSeriesAxisPosition = height - 50; // Dynamic based on passed height
+  const xAxisHeight = 50; // Height for x-axis section (same as TimeSeriesChart bottom margin)
+  const totalHeight = height; // Use the passed height
+  const scrollableHeight = timeSeriesAxisPosition; // height - 50 for scrollable area
 
-  // Modify the data to include different colors for selected location
+  // Calculate dimensions - responsive width
+  const barHeight = 10;
+  const chartHeight = data.y.length * barHeight + 100;
+
+  // Set x-axis range based on data and metric settings
+  useEffect(() => {
+    const customRange = getRange();
+    if (customRange) {
+      setXRange(customRange as [number, number]);
+    } else {
+      const min = Math.min(...data.x);
+      const max = Math.max(...data.x);
+      const padding = (max - min) * 0.1; // 10% padding
+      setXRange([Math.max(0, min - padding), max + padding]);
+    }
+  }, [data.x, selectedMetric]);
+
   const plotData = {
     ...data,
     marker: {
       ...data.marker,
     },
-    width: Array(data.y.length).fill(0.8)  // Set bar width to 0.8 for all bars
-  };
+    width: Array(data.y.length).fill(0.8) as number[]
+  } as Plotly.Data;
 
-  const handleClick = (event: any) => {
+  const handleClick = (event: Readonly<Plotly.PlotMouseEvent>) => {
     if (event.points && event.points[0] && onLocationClick) {
-      onLocationClick(event.points[0].y);
+      const point = event.points[0] as Plotly.PlotDatum;
+      if (point.y && typeof point.y === 'string') {
+        onLocationClick(point.y);
+      }
     }
   };
 
   return (
-    <Plot
-      data={[plotData]}
-      layout={{
-        autosize: true,
-        height: Math.max(height, data.y.length * 10), // Adjust height based on number of locations
-        margin: { l: 150, r: 10, t: 10, b: 50 },
-        yaxis: {
-          title: "",
-          automargin: true,
-          tickfont: { size: 10 },
-          tickmode: "array",
-          ticktext: data.y,
-          tickvals: data.y,
-          showticklabels: true,
-          side: "left",
-          fixedrange: true
-        },
-        xaxis: {
-          title: {
-            text: chartTitles[selectedMetric as keyof typeof chartTitles]["locationBarChartTitle"],
-            standoff: 40,
-          },
-          dtick: getDtick(),
-          tickformat: getTickFormat(),
-          range: getRange(),
-          autorange: getAutorange(),
-          fixedrange: true
-        },
-        bargap: 0.15,
-        showlegend: false,
-        plot_bgcolor: "white",
-        paper_bgcolor: "white"
-      }}
-      config={{
-        displayModeBar: false,
-        scrollZoom: false
-      }}
-      style={{ 
-        width, 
-        height: "100%",
-        minHeight: "200px",
-        overflowY: "auto",
-        overflowX: "hidden"
-      }}
-      onClick={handleClick}
-    />
+    <div style={{ 
+      width: width, 
+      height: totalHeight, // Use passed height (450px for Operations, 500px for Maintenance)
+      backgroundColor: 'white',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Main chart: Bars, no x-axis */}
+      <div style={{ 
+        height: scrollableHeight, // Dynamic height to align x-axis properly
+        overflowY: 'auto', 
+        overflowX: 'hidden',
+        position: 'relative'
+      }}>
+        <Plot
+          ref={mainChartRef}
+          data={[plotData]}
+          layout={{
+            height: chartHeight,
+            autosize: true, // Make it responsive
+            margin: { l: 150, r: 10, t: 20, b: 0 }, // No bottom margin = no x-axis
+            yaxis: {
+              title: "",
+              automargin: true,
+              tickfont: { size: 10 },
+              tickmode: "array",
+              ticktext: data.y,
+              tickvals: data.y,
+              showticklabels: true,
+              side: "left",
+              fixedrange: true
+            },
+            xaxis: { 
+              visible: false, 
+              fixedrange: true,
+              range: xRange
+            },
+            bargap: 0.15,
+            showlegend: false,
+            plot_bgcolor: "white",
+            paper_bgcolor: "white"
+          }}
+          config={{ 
+            staticPlot: false,
+            displayModeBar: false,
+            responsive: true // Enable responsive behavior
+          }}
+          style={{ 
+            width: '100%',
+            height: 'auto'
+          }}
+          onClick={handleClick}
+        />
+      </div>
+
+      {/* Fixed x-axis at the bottom - aligned with TimeSeriesChart x-axis */}
+      <div style={{ 
+        height: xAxisHeight, // 50px to match TimeSeriesChart bottom margin
+        width: '100%', // Use full container width
+        overflow: 'hidden',
+        borderTop: '1px solid #e0e0e0',
+        flexShrink: 0 // Don't shrink this section
+      }}>
+        <Plot
+          ref={xAxisRef}
+          data={[{
+            type: 'bar',
+            y: [' '], // Invisible bar
+            x: [xRange[1]], // Use max value for scale
+            orientation: 'h',
+            marker: { color: 'rgba(0,0,0,0)' }, // Invisible
+            hoverinfo: 'none'
+          }]}
+          layout={{
+            height: xAxisHeight,
+            autosize: true, // Make it responsive
+            margin: { l: 150, r: 10, t: 0, b: 50 }, // Same left margin as main chart, bottom for axis title
+            yaxis: { visible: false },
+            xaxis: { 
+              range: xRange, 
+              fixedrange: true,
+              title: {
+                text: chartTitles[selectedMetric as keyof typeof chartTitles]?.["locationBarChartTitle"] || getAxisTitle(),
+                standoff: 20,
+              },
+              dtick: getDtick(),
+              tickformat: getTickFormat()
+            },
+            showlegend: false,
+            plot_bgcolor: "white",
+            paper_bgcolor: "white"
+          }}
+          config={{ 
+            staticPlot: true, 
+            displayModeBar: false,
+            responsive: true // Enable responsive behavior
+          }}
+          style={{ 
+            width: '100%',
+            height: '100%'
+          }}
+        />
+      </div>
+    </div>
   );
 };
 

@@ -749,9 +749,8 @@ export default function Maintenance() {
                       <LocationBarChart
                         data={locationBarData as any}
                         selectedMetric={selectedMetric}
-                        selectedLocation={selectedLocation}
                         onLocationClick={handleLocationClick}
-                        height={Math.max(500, locationMetrics.length * 10)} // Adjust height based on number of locations
+                        height={500} // Match TimeSeriesChart height for x-axis alignment
                       />
                     </Box>
                   </Grid>

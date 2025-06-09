@@ -594,7 +594,7 @@ export default function Operations() {
                         data={locationBarData}
                         selectedMetric={selectedMetric}
                         onLocationClick={handleLocationClick}
-                        height={Math.max(500, locationMetrics.length * 10)} // Adjust height based on number of locations
+                        height={500} // Match TimeSeriesChart height for x-axis alignment
                       />
                     </Box>
                   </Grid>
@@ -604,6 +604,7 @@ export default function Operations() {
                     <TimeSeriesChart 
                       data={timeSeriesChartData()}
                       selectedMetric={selectedMetric}
+                      height={500} // Consistent height for x-axis alignment
                       // showLegend={!selectedLocation}
                     />
                   </Grid>
