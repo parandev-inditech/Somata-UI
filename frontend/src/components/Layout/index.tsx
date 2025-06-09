@@ -8,6 +8,7 @@ import Box from "@mui/material/Box"
 import Header from "../Header";
 import SideNav from "../SideNav"
 import FilterSidebar from "../FilterSidebar"
+import FilterChipList from "../FilterChipList"
 import IconButton from "@mui/material/IconButton"
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { useLocation } from "react-router-dom";
@@ -97,6 +98,19 @@ export default function Layout({ children }: LayoutProps) {
               <FilterAltIcon />
             </IconButton>
           </Box>)}
+          
+          {/* Filter Chip List - Show active filters */}
+          {shouldShowFilter && (
+            <Box sx={{ 
+              position: 'relative',
+              zIndex: 1000,
+              px: 2,
+              pt: 1
+            }}>
+              <FilterChipList />
+            </Box>
+          )}
+          
           {children}
         </Box>
       </Main>
