@@ -10,6 +10,7 @@ import SideNav from "../SideNav"
 import FilterSidebar from "../FilterSidebar"
 import IconButton from "@mui/material/IconButton"
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import { useLocation } from "react-router-dom";
 
 const expandedDrawerWidth = 240
 const collapsedDrawerWidth = 65
@@ -46,6 +47,10 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [sideNavExpanded, setSideNavExpanded] = useState(true)
   const [filterOpen, setFilterOpen] = useState(false)
+  const location = useLocation();
+
+  const hideFilterPath = ["/watchdog", "/health-metrics", "/signal-info", "/reports", "/about"];
+  const shouldShowFilter = !hideFilterPath.some(path => location.pathname.includes(path));
 
   const handleSideNavToggle = () => {
     setSideNavExpanded(!sideNavExpanded)
@@ -64,6 +69,7 @@ export default function Layout({ children }: LayoutProps) {
       <Main sideNavWidth={sideNavWidth} filterOpen={filterOpen}>
         <Box sx={{ pt: 8, height: "calc(100vh - 64px)", overflowY: "auto", overflowX: "auto" }}>
           {/* Filter Button - Absolutely positioned in top right corner */}
+          {shouldShowFilter && (
           <Box sx={{ 
             position: 'absolute', 
             top: '70px', 
@@ -90,11 +96,11 @@ export default function Layout({ children }: LayoutProps) {
             >
               <FilterAltIcon />
             </IconButton>
-          </Box>
+          </Box>)}
           {children}
         </Box>
       </Main>
-      <FilterSidebar open={filterOpen} width={filterWidth} onClose={handleFilterToggle} />
+      {shouldShowFilter && <FilterSidebar open={filterOpen} width={filterWidth} onClose={handleFilterToggle} />}
     </Box>
   )
 }
