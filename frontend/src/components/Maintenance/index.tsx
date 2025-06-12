@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import axios from "axios"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Paper from "@mui/material/Paper"
@@ -118,17 +117,30 @@ const metricToSettingsMap: Record<string, string> = {
 export default function Maintenance() {
   // State for selected metric
   const [selectedMetric, setSelectedMetric] = useState("detectorUptime");
-  const [selectedMetricKey, setSelectedMetricKey] = useState("du");
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  
-  // Local state for component-specific data
-  const [locationMetrics, setLocationMetrics] = useState<LocationMetric[]>([]);
-  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
-  const [mapData, setMapData] = useState<MapPoint[]>([]);
 
   const commonFilterParams = useSelector(selectFilterParams);
-  const filtersApplied = useSelector((state: RootState) => state.filter.filtersApplied);
-  console.log("filtersApplied", filtersApplied);
+  
+  // Create a stable key from the actual filter values that matter for API calls
+  const filterKey = useMemo(() => {
+    return JSON.stringify({
+      dateRange: commonFilterParams.dateRange,
+      timePeriod: commonFilterParams.timePeriod,
+      customStart: commonFilterParams.customStart,
+      customEnd: commonFilterParams.customEnd,
+      startTime: commonFilterParams.startTime,
+      endTime: commonFilterParams.endTime,
+      zone_Group: commonFilterParams.zone_Group,
+      zone: commonFilterParams.zone,
+      agency: commonFilterParams.agency,
+      county: commonFilterParams.county,
+      city: commonFilterParams.city,
+      corridor: commonFilterParams.corridor,
+      signalId: commonFilterParams.signalId,
+      priority: commonFilterParams.priority,
+      classification: commonFilterParams.classification
+    });
+  }, [commonFilterParams]);
   // Redux state
   const dispatch = useAppDispatch();
   const { 
@@ -144,125 +156,119 @@ export default function Maintenance() {
                   metricsAverage.loading || 
                   signalsFilterAverage.loading;
 
-  const currentMetric = metrics.find(m => m.id === selectedMetric);
-    useDocumentTitle({
-      route: 'Maintenance',
-      tab: currentMetric?.label
-    });
+  // Memoize the current metric to prevent unnecessary recalculations
+  const currentMetric = useMemo(() => 
+    metrics.find(m => m.id === selectedMetric), 
+    [selectedMetric]
+  );
+
+  // Memoize the selected metric key
+  const selectedMetricKey = useMemo(() => 
+    currentMetric?.key || "du", 
+    [currentMetric]
+  );
+
+  useDocumentTitle({
+    route: 'Maintenance',
+    tab: currentMetric?.label
+  });
   
   const metricData = straightAverage.data;
-  
-  // Find the metric key for the selected metric
-  useEffect(() => {
-    const metric = metrics.find(m => m.id === selectedMetric);
-    if (metric) {
-      setSelectedMetricKey(metric.key);
+
+  // Memoize processed location metrics
+  const locationMetrics = useMemo((): LocationMetric[] => {
+    if (!metricsAverage.data || !Array.isArray(metricsAverage.data)) {
+      return [];
     }
-  }, [selectedMetric]);
-
-  // Fetch data when selected metric changes
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Create common params object
-        const params: MetricsFilterRequest = {
-          source: "main",
-          measure: selectedMetricKey
-        };
-        
-        // Dispatch actions to fetch data
-        dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
-        dispatch(fetchAllSignals());
-        dispatch(fetchSignalsFilterAverage({ params, filterParams: commonFilterParams }));
-        dispatch(fetchMetricsAverage({ 
-          params: { ...params, dashboard: false }, 
-          filterParams: commonFilterParams 
-        }));
-        dispatch(fetchMetricsFilter({ params, filterParams: commonFilterParams }));
-      } catch (error) {
-        console.error("Error dispatching Redux actions:", error);
-      }
-    };
-
-    fetchData();
-  }, [selectedMetricKey, filtersApplied]);
-
-  useEffect(() => {
-    if (metricsAverage.data) {
-      const sortedMetricsAvg = metricsAverage.data.map((item: any) => ({
+    
+    return metricsAverage.data
+      .map((item: { label: string; avg: number }) => ({
         label: item.label,
-        avg: item.avg || 0
-      })).sort((a: LocationMetric, b: LocationMetric) => a.avg - b.avg);
-      setLocationMetrics(sortedMetricsAvg as any);
-    }
-  }, [metricsAverage.data]);
+        avg: item.avg || 0,
+        delta: 0,
+        zoneGroup: null,
+        weight: 1
+      }))
+      .sort((a: LocationMetric, b: LocationMetric) => a.avg - b.avg);
+  }, [metricsAverage.data, filterKey]);
 
-  useEffect(() => {
-    // Set time series data when available
-    if (metricsFilter.data) {
-      setTimeSeriesData(metricsFilter.data as any);
+  // Memoize processed time series data
+  const timeSeriesData = useMemo((): TimeSeriesData[] => {
+    if (!metricsFilter.data || !Array.isArray(metricsFilter.data)) {
+      return [];
     }
-  }, [metricsFilter.data])
+    
+    return metricsFilter.data as TimeSeriesData[];
+  }, [metricsFilter.data, filterKey]);
 
-  // Process data when Redux state changes
-  useEffect(() => {
-    // Process signal metrics when available
-    if (signals.length > 0 && signalsFilterAverage.data) {
-      // Create a map of signal IDs to metric values
-      const metricsMap: { [key: string]: number } = {};
-      signalsFilterAverage.data.forEach((item: any) => {
-        if (item.avg !== 0) { // Only include non-zero values
-          metricsMap[item.label] = item.avg;
-        }
-      });
-      
-      // Prepare map data
-      const mapPointsData = signals
-        .filter((signal) => signal.latitude && signal.longitude)
-        .map((signal) => ({
-          signalID: signal.signalID || '',
-          lat: signal.latitude,
-          lon: signal.longitude,
-          name: `${signal.mainStreetName || ''} ${signal.sideStreetName ? '@ ' + signal.sideStreetName : ''}`,
-          value: metricsMap[signal.signalID || ''] || 0
-        }))
-        .filter(point => point.value !== 0); // Filter out points with value 0
-      setMapData(mapPointsData);
+  // Memoize processed map data
+  const mapData = useMemo((): MapPoint[] => {
+    if (!signals.length || !signalsFilterAverage.data || !Array.isArray(signalsFilterAverage.data)) {
+      return [];
     }
-  }, [signals, signalsFilterAverage.data, filtersApplied]);
+    
+    // Create a map of signal IDs to metric values
+    const metricsMap: { [key: string]: number } = {};
+    signalsFilterAverage.data.forEach((item: { label: string; avg: number }) => {
+      if (item.avg !== 0) { // Only include non-zero values
+        metricsMap[item.label] = item.avg;
+      }
+    });
+    
+    // Prepare map data
+    return signals
+      .filter((signal) => signal.latitude && signal.longitude)
+      .map((signal) => ({
+        signalID: signal.signalID || '',
+        lat: signal.latitude,
+        lon: signal.longitude,
+        name: `${signal.mainStreetName || ''} ${signal.sideStreetName ? '@ ' + signal.sideStreetName : ''}`,
+        value: metricsMap[signal.signalID || ''] || 0
+      }))
+      .filter(point => point.value !== 0); // Filter out points with value 0
+  }, [signals, signalsFilterAverage.data, filterKey]);
+
+  // Fetch data when filters or selected metric changes
+  useEffect(() => {
+    const params: MetricsFilterRequest = {
+      source: "main",
+      measure: selectedMetricKey
+    };
+    
+    // Dispatch actions to fetch data
+    dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+    dispatch(fetchAllSignals());
+    dispatch(fetchSignalsFilterAverage({ params, filterParams: commonFilterParams }));
+    dispatch(fetchMetricsAverage({ 
+      params: { ...params, dashboard: false }, 
+      filterParams: commonFilterParams 
+    }));
+    dispatch(fetchMetricsFilter({ params, filterParams: commonFilterParams }));
+  }, [selectedMetricKey, filterKey, dispatch]);
 
   // Handle metric tab change
-  const handleMetricChange = (event: React.SyntheticEvent, newValue: string) => {
+  const handleMetricChange = useCallback((event: React.SyntheticEvent, newValue: string) => {
     setSelectedMetric(newValue);
-  }
+    setSelectedLocation(null); // Reset location selection when changing metrics
+  }, []);
 
   // Handle location selection
-  const handleLocationClick = (location: string) => {
+  const handleLocationClick = useCallback((location: string) => {
     setSelectedLocation(location === selectedLocation ? null : location);
-  };
+  }, [selectedLocation]);
 
-  // Create a mapping of locations to colors that will be consistent between charts
-  const getLocationColors = () => {
+  // Memoize colors to prevent recalculation on every render
+  const locationColors = useMemo(() => {
     const colors = [
-      '#1f77b4', // blue
-      '#ff7f0e', // orange
-      '#2ca02c', // green
-      '#d62728', // red
-      '#9467bd', // purple
-      '#8c564b', // brown
-      '#e377c2', // pink
-      '#7f7f7f', // gray
-      '#bcbd22', // yellow-green
-      '#17becf'  // cyan
+      '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
     ];
     const uniqueLocations = Array.from(new Set(locationMetrics.map(item => item.label)));
     return Object.fromEntries(uniqueLocations.map((location, index) => [location, colors[index % colors.length]]));
-  };
+  }, [locationMetrics]);
 
-  const locationColors = getLocationColors();
-
-  // Format the metric value for display
-  const formatMetricValue = (value: number | string | null) => {
+  // Memoize format metric value function
+  const formatMetricValue = useCallback((value: number | string | null) => {
     if (typeof value === "number") {
       // Format based on the metric type
       if (selectedMetric === "detectorUptime" || 
@@ -277,13 +283,16 @@ export default function Maintenance() {
       }
     }
     return value || "N/A"
-  }
+  }, [selectedMetric]);
 
-  // Check if this is a percentage-based metric
-  const isPercentMetric = ["detectorUptime", "pedestrianPushbuttonUptime", "cctvUptime", "communicationUptime"].includes(selectedMetric);
+  // Memoize percentage metric check
+  const isPercentMetric = useMemo(() => 
+    ["detectorUptime", "pedestrianPushbuttonUptime", "cctvUptime", "communicationUptime"].includes(selectedMetric),
+    [selectedMetric]
+  );
   
-  // Prepare data for the location bar chart
-  const locationBarData = {
+  // Memoize location bar chart data
+  const locationBarData = useMemo(() => ({
     y: locationMetrics.map((item) => item.label),
     x: locationMetrics.map((item) => {
       // For percentage metrics, ensure values are in decimal format for proper display
@@ -300,10 +309,10 @@ export default function Maintenance() {
     hovertemplate: isPercentMetric
       ? '<b>%{y}</b><br>Value: %{x:.1%}<extra></extra>'
       : '<b>%{y}</b><br>Value: %{x}<extra></extra>',
-  }
+  }), [locationMetrics, locationColors, selectedLocation, isPercentMetric]);
 
-  // Prepare data for the time series chart
-  const timeSeriesChartData = () => {
+  // Memoize time series chart data
+  const timeSeriesChartData = useMemo(() => {
     // Group by location
     const locationGroups: { [key: string]: { x: string[]; y: number[] } } = {}
     
@@ -325,8 +334,8 @@ export default function Maintenance() {
       // Extract value using the appropriate key for this metric
       let rawValue: number;
       
-      if (item[selectedMetricKey] !== undefined) {
-        rawValue = parseFloat(item[selectedMetricKey]);
+      if (item[selectedMetricKey] !== undefined && item[selectedMetricKey] !== null) {
+        rawValue = parseFloat(String(item[selectedMetricKey]));
       } else if (item.uptime !== undefined) {
         rawValue = parseFloat(item.uptime);
       } else {
@@ -354,7 +363,7 @@ export default function Maintenance() {
         : '<b>%{text}</b><br>Date: %{x}<br>Value: %{y}<extra></extra>',
       text: Array(locationGroups[location].x.length).fill(location),
     }))
-  }
+  }, [timeSeriesData, selectedLocation, selectedMetricKey, isPercentMetric, locationColors]);
 
   // Prepare map data
   const mapPlotData = mapData.length === 0 ? 
@@ -543,44 +552,14 @@ export default function Maintenance() {
     }
   }
 
-  // Get the title for the time series chart
-  const getTimeSeriesTitle = () => {
-    return chartTitles[selectedMetric]["bottomChartTitle"]
+  // Memoize chart titles
+  const timeSeriesTitle = useMemo(() => {
+    return chartTitles[selectedMetric as keyof typeof chartTitles]["bottomChartTitle"]
+  }, [selectedMetric]);
 
-    // switch (selectedMetric) {
-    //   case "detectorUptime":
-    //     return "Detector Uptime"
-    //   case "pedestrianPushbuttonActivity":
-    //     return "Daily Pedestrian Pushbutton Activity"
-    //   case "pedestrianPushbuttonUptime":
-    //     return "Pedestrian Pushbutton Uptime"
-    //   case "cctvUptime":
-    //     return "CCTV Uptime"
-    //   case "communicationUptime":
-    //     return "Communication Uptime"
-    //   default:
-    //     return "Metric Trend"
-    // }
-  }
-
-  // Get the subtitle for the metric display
-  const getMetricSubtitle = () => {
-    return chartTitles[selectedMetric]["metricCardTitle"]
-    // switch (selectedMetric) {
-    //   case "detectorUptime":
-    //     return "Vehicle detector uptime"
-    //   case "pedestrianPushbuttonActivity":
-    //     return "Average daily pedestrian calls"
-    //   case "pedestrianPushbuttonUptime":
-    //     return "Pedestrian pushbutton uptime"
-    //   case "cctvUptime":
-    //     return "Surveillance camera uptime"
-    //   case "communicationUptime":
-    //     return "Communications system uptime"
-    //   default:
-    //     return ""
-    // }
-  }
+  const metricSubtitle = useMemo(() => {
+    return chartTitles[selectedMetric as keyof typeof chartTitles]["metricCardTitle"]
+  }, [selectedMetric]);
 
   const hideMap = selectedMetric === "cctvUptime";
 
@@ -634,10 +613,10 @@ export default function Maintenance() {
                   minHeight: "130px"
                 }}>
                   <Typography variant="h6" component="div" gutterBottom sx={{ fontWeight: '500', fontSize: '24px' }}>
-                    {metricData && formatMetricValue(metricData.avg)}
+                    {metricData && typeof metricData === 'object' && metricData !== null && 'avg' in metricData && formatMetricValue((metricData as any).avg)}
                   </Typography>
                   <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    {getMetricSubtitle()}
+                    {metricSubtitle}
                   </Typography>
                 </Paper>
 
@@ -651,27 +630,27 @@ export default function Maintenance() {
                   flex: 1,
                   minHeight: "130px"
                 }}>
-                  {metricData && metricData.delta !== undefined && (
+                  {metricData && typeof metricData === 'object' && metricData !== null && 'delta' in metricData && (
                     <>
                       <Typography
                         variant="h5"
                         component="div"
                         sx={{
                           color:
-                            metricData.delta > 0
+                            (metricData as any).delta > 0
                               ? "success.main"
-                              : metricData.delta < 0
+                              : (metricData as any).delta < 0
                                 ? "error.main"
                                 : "text.secondary",
                           display: "flex",
                           alignItems: "center",
                         }}
                       >
-                        {metricData.delta < 0 && "-"}
-                        {Math.abs(metricData.delta * 100).toFixed(1)}%
-                        {metricData.delta > 0 ? (
+                        {(metricData as any).delta < 0 && "-"}
+                        {Math.abs((metricData as any).delta * 100).toFixed(1)}%
+                        {(metricData as any).delta > 0 ? (
                           <ArrowUpwardIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        ) : metricData.delta < 0 ? (
+                        ) : (metricData as any).delta < 0 ? (
                           <ArrowDownwardIcon fontSize="small" sx={{ ml: 0.5 }} />
                         ) : (
                           <RemoveIcon fontSize="small" sx={{ ml: 0.5 }} />
@@ -722,7 +701,7 @@ export default function Maintenance() {
             <Grid size={{xs: 12}}>
               <Paper sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
-                  {getTimeSeriesTitle()}
+                  {timeSeriesTitle}
                 </Typography>
                 <Grid container spacing={2}>
                   {/* Location Bar Chart */}
@@ -745,7 +724,7 @@ export default function Maintenance() {
                   {/* Time Series Chart */}
                   <Grid size={{xs: 12, md: 8}}>
                     <TimeSeriesChart
-                      data={timeSeriesChartData() as any}
+                      data={timeSeriesChartData}
                       selectedMetric={selectedMetric}
                       height={500}
                       // showLegend={!selectedLocation}
