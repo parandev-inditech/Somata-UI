@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chip, Box, Typography } from '@mui/material';
+import { Chip, Box } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   setSignalId,
@@ -22,6 +22,7 @@ import {
 
 interface FilterChipListProps {
   filtersToHide?: string[];
+  onChipClick?: () => void;
 }
 
 interface FilterChip {
@@ -31,7 +32,7 @@ interface FilterChip {
   removable: boolean;
 }
 
-const FilterChipList: React.FC<FilterChipListProps> = ({ filtersToHide = [] }) => {
+const FilterChipList: React.FC<FilterChipListProps> = ({ filtersToHide = [], onChipClick }) => {
   const dispatch = useAppDispatch();
   
   const {
@@ -314,12 +315,14 @@ const FilterChipList: React.FC<FilterChipListProps> = ({ filtersToHide = [] }) =
               <span>{Array.isArray(filter.value) ? filter.value.join(', ') : filter.value}</span>
             </Box>
           }
+          onClick={onChipClick}
           onDelete={filter.removable ? () => handleRemove(filter.key) : undefined}
           // color="primary"
           // variant="outlined"
           size="small"
           sx={{
             fontSize: '0.75rem',
+            cursor: 'pointer',
             '& .MuiChip-label': {
               padding: '2px 8px',
             }

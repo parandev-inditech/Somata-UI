@@ -17,10 +17,9 @@ const expandedDrawerWidth = 240
 const collapsedDrawerWidth = 65
 const filterWidth = 300
 
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "sideNavWidth" && prop !== "filterOpen" })<{
+const Main = styled("main", { shouldForwardProp: (prop) => prop !== "sideNavWidth" })<{
   sideNavWidth?: number
-  filterOpen?: boolean
-}>(({ theme, sideNavWidth, filterOpen }) => ({
+}>(({ theme, sideNavWidth }) => ({
   flexGrow: 1,
   // padding: theme.spacing(3),
   transition: theme.transitions.create("margin", {
@@ -67,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
     <Box sx={{ display: "flex", height: "100vh", overflow: "auto" }}>
       <Header sideNavOpen={sideNavExpanded} onSideNavToggle={handleSideNavToggle} onFilterToggle={handleFilterToggle} />
       <SideNav open={true} expanded={sideNavExpanded} width={sideNavWidth} />
-      <Main sideNavWidth={sideNavWidth} filterOpen={filterOpen}>
+      <Main sideNavWidth={sideNavWidth}>
         <Box sx={{ pt: 8, height: "calc(100vh - 64px)", overflowY: "auto", overflowX: "auto" }}>
           {/* Filter Button - Absolutely positioned in top right corner */}
           {shouldShowFilter && (
@@ -107,7 +106,7 @@ export default function Layout({ children }: LayoutProps) {
               px: 2,
               pt: 1
             }}>
-              <FilterChipList />
+              <FilterChipList onChipClick={handleFilterToggle} />
             </Box>
           )}
           
