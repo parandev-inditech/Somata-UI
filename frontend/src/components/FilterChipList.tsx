@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chip, Box } from '@mui/material';
+import { Chip, Box, Typography } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   setSignalId,
@@ -303,9 +303,9 @@ const FilterChipList: React.FC<FilterChipListProps> = ({ filtersToHide = [], onC
       boxShadow: 1,
       mb: 1
     }}>
-      {/* <Typography variant="body2" sx={{ marginRight: 1, fontWeight: 500 }}>
-        Active Filters:
-      </Typography> */}
+      <Typography variant="body2" sx={{ marginRight: 1, fontWeight: 'bold' }}>
+        Current Filters:
+      </Typography>
       {activeFilters.map((filter) => (
         <Chip
           key={filter.key}
