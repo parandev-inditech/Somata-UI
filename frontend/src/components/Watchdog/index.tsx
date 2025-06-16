@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Table from "@mui/material/Table"
@@ -20,25 +20,23 @@ import Tabs from "@mui/material/Tabs"
 import Tab from "@mui/material/Tab"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday"
-import FilterListIcon from "@mui/icons-material/FilterList"
 import FirstPageIcon from "@mui/icons-material/FirstPage"
 import LastPageIcon from "@mui/icons-material/LastPage"
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft"
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight"
 import CircularProgress from "@mui/material/CircularProgress"
 import TableSortLabel from "@mui/material/TableSortLabel"
-import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker'
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 import Plotly from 'plotly.js-dist'
 import { RootState } from "../../store/store"
+import { useAppDispatch } from "../../store/hooks"
 import { fetchWatchdogData } from "../../store/slices/watchdogSlice"
 import { WatchdogParams } from "../../types/api.types"
+import { WatchdogData, WatchdogTableData } from "../../services/api/watchdogApi"
 import DateRangePickerComponent from "../DateRangePicker"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
+import { debounce } from 'lodash'
 
 // Available options
 const zoneGroups = ["Central Metro", "Eastern Metro", "Western Metro", "North", "Southeast", "Southwest", "Ramp Meters"]
@@ -46,12 +44,23 @@ const alerts = ["No Camera Image", "Bad Vehicle Detection", "Bad Ped Pushbuttons
 const phases = ["All", "1", "2", "3", "4", "5", "6", "7", "8"]
 const streaks = ["All", "Active", "Active 3-days"]
 
+// Define filter types
+interface WatchdogFilter {
+  startDate: Date;
+  endDate: Date;
+  alert: string;
+  phase: string;
+  intersectionFilter: string;
+  streak: string;
+  zoneGroup: string;
+}
+
 export default function Watchdog() {
   useDocumentTitle();
-  const dispatch = useDispatch()
-  const { data, loading, error } = useSelector((state: RootState) => state.watchdog)
+  const dispatch = useAppDispatch();
+  const { data, loading } = useSelector((state: RootState) => state.watchdog)
   
-  const [filter, setFilter] = useState({
+  const [filter, setFilter] = useState<WatchdogFilter>({
     startDate: new Date(new Date().setDate(new Date().getDate() - 7)),
     endDate: new Date(),
     alert: "No Camera Image",
@@ -68,8 +77,21 @@ export default function Watchdog() {
   const [order, setOrder] = useState<"asc" | "desc">("desc")
   const plotContainerRef = useRef<HTMLDivElement>(null)
 
+  // Debounced filter change handler
+  const debouncedLoadFilteredData = useRef(
+    debounce((params: WatchdogParams) => {
+      void dispatch(fetchWatchdogData(params))
+    }, 500)
+  ).current
+
   useEffect(() => {
+    // Initial data load
     loadFilteredData()
+    
+    // Cleanup debounce on unmount
+    return () => {
+      debouncedLoadFilteredData.cancel()
+    }
   }, [])
 
   // Effect for rendering the plot when data changes
@@ -78,6 +100,22 @@ export default function Watchdog() {
       renderPlot()
     }
   }, [view, data])
+
+  // Effect to load data when filter changes
+  useEffect(() => {
+    const params: WatchdogParams = {
+      startDate: filter.startDate.toISOString(),
+      endDate: filter.endDate.toISOString(),
+      alert: filter.alert,
+      phase: filter.phase,
+      intersectionFilter: filter.intersectionFilter,
+      streak: filter.streak,
+      zoneGroup: filter.zoneGroup
+    }
+    
+    // Use debounced function for all filter changes
+    debouncedLoadFilteredData(params)
+  }, [filter])
 
   const loadFilteredData = () => {
     const params: WatchdogParams = {
@@ -90,7 +128,7 @@ export default function Watchdog() {
       zoneGroup: filter.zoneGroup
     }
     
-    dispatch(fetchWatchdogData(params) as any)
+    void dispatch(fetchWatchdogData(params))
   }
 
   const renderPlot = () => {
@@ -184,10 +222,16 @@ export default function Watchdog() {
     }
   }
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (key: keyof WatchdogFilter, value: string | Date) => {
     setFilter(prev => ({ ...prev, [key]: value }))
-    // Debounce the filter change
-    setTimeout(() => loadFilteredData(), 1000)
+  }
+
+  const handleDateRangeChange = (startDate: Date, endDate: Date) => {
+    setFilter(prev => ({
+      ...prev,
+      startDate,
+      endDate
+    }))
   }
 
   const handleViewChange = (event: React.SyntheticEvent, newValue: string) => {
@@ -247,10 +291,10 @@ export default function Watchdog() {
   }
   
   // Sort table data
-  const getSortedData = (data: any[]) => {
+  const getSortedData = (data: WatchdogTableData[]) => {
     return [...data].sort((a, b) => {
-      const valueA = a[orderBy]
-      const valueB = b[orderBy]
+      const valueA = a[orderBy as keyof WatchdogTableData]
+      const valueB = b[orderBy as keyof WatchdogTableData]
       
       if (typeof valueA === 'number' && typeof valueB === 'number') {
         return order === 'asc' ? valueA - valueB : valueB - valueA
@@ -285,7 +329,11 @@ export default function Watchdog() {
           </Select>
         </FormControl>
 
-        <DateRangePickerComponent />
+        <DateRangePickerComponent 
+          startDate={filter.startDate}
+          endDate={filter.endDate}
+          onChange={handleDateRangeChange}
+        />
 
         {/* Alert */}
         <FormControl size="small" sx={{ minWidth: 150 }}>

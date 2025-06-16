@@ -26,7 +26,8 @@ export interface WatchdogData {
 }
 
 export const watchdogApi = {
-    getWatchdogData: (params: WatchdogParams) => {
-        return apiClient.post<WatchdogData[]>('/watchdog/data', params);
+    getWatchdogData: async (params: WatchdogParams): Promise<WatchdogData[]> => {
+        const response = await apiClient.post<WatchdogData[]>('/watchdog/data', params);
+        return response;
     },
 }; 
