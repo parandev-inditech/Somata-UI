@@ -29,10 +29,16 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
     },
     '&.MuiTableCell-body': {
         padding: theme.spacing(1),
+        height: 56, // Fixed height for body cells
+        verticalAlign: 'middle',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
     },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
+    height: 56, // Fixed height for all rows
     '&:nth-of-type(odd)': {
         backgroundColor: theme.palette.action.hover,
     },
@@ -113,8 +119,8 @@ export default function SignalInfo() {
 
     return (
         <>
-        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-            <TableContainer sx={{ maxHeight: 'calc(100vh - 100px)' }}>
+        {/* <Paper sx={{ width: '100%', overflow: 'hidden' }}> */}
+            <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 100px)' }}>
                 <Table stickyHeader aria-label="sticky table">
                     <TableHead>
                         <TableRow>
@@ -195,7 +201,7 @@ export default function SignalInfo() {
                 </Table>
             </TableContainer>
             
-        </Paper>
+        {/* </Paper> */}
         <Box sx={{ 
                 display: 'flex',
                 position: 'absolute',

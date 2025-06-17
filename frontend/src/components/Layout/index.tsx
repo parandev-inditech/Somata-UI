@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { styled } from "@mui/material/styles"
 import Box from "@mui/material/Box"
 import Header from "../Header";
@@ -45,9 +45,10 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [sideNavExpanded, setSideNavExpanded] = useState(true)
+  const [sideNavExpanded, setSideNavExpanded] = useState(false) // Start collapsed
   const [filterOpen, setFilterOpen] = useState(false)
   const location = useLocation();
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const hideFilterPath = ["/watchdog", "/health-metrics", "/signal-info", "/reports", "/about"];
   const shouldShowFilter = !hideFilterPath.some(path => location.pathname.includes(path));
@@ -60,12 +61,44 @@ export default function Layout({ children }: LayoutProps) {
     setFilterOpen(!filterOpen)
   }
 
+  const handleSideNavMouseEnter = () => {
+    // Clear any pending close timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    // Expand immediately on hover
+    setSideNavExpanded(true);
+  }
+
+  const handleSideNavMouseLeave = () => {
+    // Add a small delay before collapsing to prevent flickering
+    hoverTimeoutRef.current = setTimeout(() => {
+      setSideNavExpanded(false);
+    }, 300); // 300ms delay
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const sideNavWidth = sideNavExpanded ? expandedDrawerWidth : collapsedDrawerWidth
 
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "auto" }}>
       <Header sideNavOpen={sideNavExpanded} onSideNavToggle={handleSideNavToggle} onFilterToggle={handleFilterToggle} />
-      <SideNav open={true} expanded={sideNavExpanded} width={sideNavWidth} />
+      <SideNav 
+        open={true} 
+        expanded={sideNavExpanded} 
+        width={sideNavWidth}
+        onMouseEnter={handleSideNavMouseEnter}
+        onMouseLeave={handleSideNavMouseLeave}
+      />
       <Main sideNavWidth={sideNavWidth}>
         <Box sx={{ pt: 8, height: "calc(100vh - 64px)", overflowY: "auto", overflowX: "auto" }}>
           {/* Filter Button - Absolutely positioned in top right corner */}

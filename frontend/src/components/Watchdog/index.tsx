@@ -70,7 +70,7 @@ export default function Watchdog() {
     zoneGroup: "Central Metro"
   })
   
-  const [view, setView] = useState("table")
+  const [view, setView] = useState("plot")
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [orderBy, setOrderBy] = useState("streak")
@@ -313,7 +313,7 @@ export default function Watchdog() {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "auto" }}>
       {/* Filter Controls */}
-      <Box sx={{ p: 1, display: "flex", flexWrap: "wrap", gap: 1, bgcolor: "#f5f5f5" }}>
+      <Box sx={{ p: 2, display: "flex", flexWrap: "wrap", gap: 1, bgcolor: "#f5f5f5" }}>
         {/* Region */}
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel id="region-label">Region</InputLabel>

@@ -19,7 +19,7 @@ import InfoIcon from "@mui/icons-material/Info"
 import AlarmIcon from '@mui/icons-material/Alarm';
 import ToysIcon from '@mui/icons-material/Toys';
 import SettingsInputAntennaIcon from "@mui/icons-material/SettingsInputAntenna"
-import BarChartIcon from "@mui/icons-material/BarChart"
+
 import HealingIcon from '@mui/icons-material/Healing'
 import PoweredByGDOT from '../../assets/images/icon_PoweredByGDOT.png'
 import GDOTMini from '../../assets/images/icon_PoweredByGDOT-mini.png'
@@ -28,6 +28,8 @@ interface SideNavProps {
   open?: boolean
   expanded?: boolean
   width: number
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 interface NavItem {
@@ -36,7 +38,7 @@ interface NavItem {
   path: string
 }
 
-export default function SideNav({ open = true, expanded = true, width }: SideNavProps) {
+export default function SideNav({ open = true, expanded = true, width, onMouseEnter, onMouseLeave }: SideNavProps) {
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -62,6 +64,8 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
     <Drawer
       variant="permanent"
       open={isOpen}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       sx={{
         width: width,
         flexShrink: 0,
@@ -71,6 +75,7 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
           overflowX: "hidden",
           backgroundColor: '#ffffff', // Light grey similar to GDOT original
           color: '#333333', 
+          transition: 'width 0.3s ease-in-out',
         },
       }}
     >
@@ -87,6 +92,7 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
                   minHeight: 48,
                   px: 2,
                   backgroundColor: location.pathname === item.path ? '#eeeeee' : 'transparent',
+                  transition: 'all 0.3s ease-in-out',
                   '&.Mui-selected': {
                     backgroundColor: '#eeeeee',
                     fontWeight: 600,
@@ -98,14 +104,23 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
                 }}
               >
                 <ListItemIcon sx={{ 
-                  minWidth: isExpanded ? 56 : 'auto',
-                  mr: isExpanded ? 3 : 'auto',
+                  minWidth: isExpanded ? 56 : 56, // Keep consistent width
+                  mr: isExpanded ? 3 : 0, // Smooth margin transition
                   justifyContent: 'center',
                   color: '#444',
+                  transition: 'all 0.3s ease-in-out',
                 }}>
                   {item.icon}
                 </ListItemIcon>
-                {isExpanded && <ListItemText primary={item.text} />}
+                <ListItemText 
+                  primary={item.text} 
+                  sx={{
+                    opacity: isExpanded ? 1 : 0,
+                    transition: 'opacity 0.3s ease-in-out',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                  }}
+                />
               </ListItemButton>
             </ListItem>
           ))}

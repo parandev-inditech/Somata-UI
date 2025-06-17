@@ -32,8 +32,8 @@ import useDocumentTitle from "../../hooks/useDocumentTitle"
 
 // Define the available metrics
 const metrics = [
-  { id: "dailyTrafficVolumes", label: "Daily Traffic Volumes", key: "vpd" },
   { id: "throughput", label: "Throughput", key: "tp" },
+  { id: "dailyTrafficVolumes", label: "Daily Traffic Volumes", key: "vpd" },
   { id: "arrivalsOnGreen", label: "Arrivals on Green", key: "aogd" },
   { id: "progressionRatio", label: "Progression Ratio", key: "prd" },
   { id: "spillbackRatio", label: "Spillback Ratio", key: "qsd" },
