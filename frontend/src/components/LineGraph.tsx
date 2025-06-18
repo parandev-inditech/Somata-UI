@@ -327,6 +327,7 @@ const LineGraph: React.FC<LineGraphProps> = ({
 
   // Layout configuration
   const layout: Partial<Layout> = {
+    autosize: true,
     height: 100,
     margin: {
       l: 0,
@@ -385,8 +386,19 @@ const LineGraph: React.FC<LineGraphProps> = ({
   }
 
   return (
-    <Box sx={{ position: "relative", width: "100%", maxWidth: "600px", mb: 1 }}>
-      <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+    <Box sx={{ 
+      position: "relative", 
+      width: "100%", 
+      mb: 1,
+      minWidth: 0, // Allow shrinking below content size
+      flexShrink: 1 // Allow the entire component to shrink
+    }}>
+      <Box sx={{ 
+        display: "flex", 
+        alignItems: "flex-start", 
+        width: "100%",
+        minWidth: 0 // Allow shrinking below content size
+      }}>
         <Typography 
           variant="subtitle1" 
           color="#000000DE" 
@@ -394,22 +406,28 @@ const LineGraph: React.FC<LineGraphProps> = ({
             mr: 2,
             mt: 3,
             width: "90px",
+            flexShrink: 0,
           }}
         >
           {title}
         </Typography>
         
-        <Box sx={{ flexGrow: 1, width: "calc(100% - 90px)", position: "relative" }}>
-          {/* <Box sx={{ position: "absolute", top: "40px", left: "0", width: "100%", zIndex: 1, display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: "bold" }}>
-              {firstValue.toLocaleString()}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: "bold" }}>
-              {lastValue.toLocaleString()}
-            </Typography>
-          </Box> */}
-          
-          <Plot data={traces} layout={layout} config={config} style={{ width: "100%" }} />
+        <Box sx={{ 
+          flexGrow: 1, 
+          position: "relative", 
+          minWidth: 0, // Allow shrinking below content size
+          overflow: "hidden" // Prevent content from overflowing
+        }}>
+          <Plot 
+            data={traces} 
+            layout={layout} 
+            config={config} 
+            style={{ 
+              width: "100%", 
+              height: "100%",
+              minWidth: "200px" // Minimum width to prevent too much shrinking
+            }} 
+          />
         </Box>
       </Box>
     </Box>
