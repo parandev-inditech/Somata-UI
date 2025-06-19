@@ -1,9 +1,9 @@
-import { BrowserRouter as Router } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import CssBaseline from "@mui/material/CssBaseline"
-import Layout from "./components/Layout"
-import AppRoutes from "./routes/AppRoutes"
+import ErrorBoundary from "./components/ErrorBoundary"
 import { consoledebug } from "./utils/debug"
+import AppRoutes from "./routes/AppRoutes"
 
 consoledebug("testing console debugging")
 
@@ -24,14 +24,14 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Layout>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
           <AppRoutes />
-        </Layout>
-      </Router>
-    </ThemeProvider>
+        </Router>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }
 
