@@ -504,18 +504,33 @@ export default function Dashboard() {
 
   // Return JSX
   return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', gap: 2 }}>
+    <Box sx={{ 
+      height: 'calc(100vh - 64px)', // Adjust based on your header height
+      display: 'flex',
+      flexDirection: 'column',
+      p: 2 
+    }}>
+      <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
         {/* Main Content - Responsive Layout */}
-        <Box sx={{ flex: 1 }}>
-          <Grid container spacing={2}>
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column',
+          minHeight: 0
+        }}>
+          <Grid container spacing={2} sx={{ flex: 1 }}>
             {/* Performance Metrics */}
             <Grid size={{xs: 12, md: 6, lg: 12}}>
-              <Paper sx={{ p: 2 }}>
+              <Paper sx={{ 
+                p: 2, 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
                 <Typography variant="h6" gutterBottom fontWeight={'bold'}>
                   Performance
                 </Typography>
-                <TableContainer>
+                <TableContainer sx={{ flex: 1 }}>
                     <Table size="small">
                       <TableBody>
                         {perfMetrics.map((row) => (
@@ -535,11 +550,16 @@ export default function Dashboard() {
 
             {/* Volume & Equipment */}
             <Grid size={{xs: 12, md: 6, lg: 12}}>
-              <Paper sx={{ p: 2 }}>
+              <Paper sx={{ 
+                p: 2, 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
                 <Typography variant="h6" gutterBottom fontWeight={'bold'}>
                   Volume & Equipment
                 </Typography>
-                <TableContainer>
+                <TableContainer sx={{ flex: 1 }}>
                     <Table size="small">
                       <TableBody>
                         {volMetrics.map((row) => (
@@ -572,9 +592,20 @@ export default function Dashboard() {
         </Box>
 
         {/* Map Area */}
-        <Box sx={{ flex: 2 }}>
-          <Paper sx={{ p: 2, height: "100%", minHeight: "500px" }}>
-            <Box sx={{ height: "100%", width: "100%", position: "relative", minHeight: "400px" }}>
+        <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <Paper sx={{ 
+            p: 2, 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0
+          }}>
+            <Box sx={{ 
+              flex: 1, 
+              width: "100%", 
+              position: "relative", 
+              minHeight: 0
+            }}>
               {mapLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                   <CircularProgress />
