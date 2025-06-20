@@ -21,23 +21,15 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "sideNavWidt
   sideNavWidth?: number
 }>(({ theme, sideNavWidth }) => ({
   flexGrow: 1,
-  // padding: theme.spacing(3),
-  transition: theme.transitions.create("margin", {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
+  transition: theme.transitions.create(["margin", "width"], {
+    easing: theme.transitions.easing.easeOut,
+    duration: theme.transitions.duration.enteringScreen,
   }),
-  marginLeft: 0,
+  // marginLeft: `${sideNavWidth || collapsedDrawerWidth}px`,
   marginRight: 0,
-  ...(sideNavWidth && {
-    transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    // marginLeft: `${sideNavWidth}px`,
-  }),
-  // ...(filterOpen && {
-  //   marginRight: `${filterWidth}px`,
-  // }),
+  width: `calc(100% - ${sideNavWidth || collapsedDrawerWidth}px)`,
+  minWidth: 0, // Allow shrinking below content width
+  overflowX: "hidden", // Prevent horizontal overflow
 }))
 
 export default function Layout() {
@@ -85,9 +77,19 @@ export default function Layout() {
 
   const sideNavWidth = sideNavExpanded ? expandedDrawerWidth : collapsedDrawerWidth
 
+  // Trigger resize event when sidebar width changes to help maps adjust
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Dispatch a resize event to trigger any resize handlers in child components
+      window.dispatchEvent(new Event('resize'));
+    }, 350); // Wait for transition to complete
+
+    return () => clearTimeout(timer);
+  }, [sideNavWidth]);
+
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "auto" }}>
-      <Header sideNavOpen={sideNavExpanded} onSideNavToggle={handleSideNavToggle} onFilterToggle={handleFilterToggle} />
+      <Header onSideNavToggle={handleSideNavToggle} />
       <SideNav 
         open={true} 
         expanded={sideNavExpanded} 

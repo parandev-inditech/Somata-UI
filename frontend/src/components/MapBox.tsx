@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from "react";
+import { FC, useState, useEffect, useRef } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
@@ -103,6 +103,8 @@ const MapBox: FC<MapBoxProps> = ({
   mapOptions = {},
   // filter = {}
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const plotRef = useRef<any>(null);
   const dispatch: AppDispatch = useDispatch();
   const signals = useSelector((state: any) => state.metrics.signals);
   const [mapData, setMapData] = useState<MapTrace[]>([]);
@@ -114,6 +116,7 @@ const MapBox: FC<MapBoxProps> = ({
       zoom: zoom
     },
     margin: { r: 0, t: 0, b: 0, l: 0 },
+    autosize: true,
     xaxis: {
       zeroline: false,
     },
@@ -397,6 +400,52 @@ const MapBox: FC<MapBoxProps> = ({
     });
   }, [autoCenter, autoZoom, center, zoom, mapStyle]);
 
+  // Add ResizeObserver to handle container size changes
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Debounce the resize to avoid too many calls
+      setTimeout(() => {
+        if (plotRef.current && window.Plotly) {
+          window.Plotly.Plots.resize(plotRef.current);
+        }
+      }, 100);
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Force resize when layout changes (sidebar expand/collapse)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (plotRef.current && window.Plotly) {
+        window.Plotly.Plots.resize(plotRef.current);
+      }
+    }, 350); // Wait for transition to complete
+
+    return () => clearTimeout(timer);
+  }, [width, height]);
+
+  // Listen for window resize events (triggered by sidebar changes)
+  useEffect(() => {
+    const handleResize = () => {
+      if (plotRef.current && window.Plotly) {
+        // Small delay to ensure DOM has updated
+        setTimeout(() => {
+          window.Plotly.Plots.resize(plotRef.current);
+        }, 50);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Helper function to format number values
   const formatNumber = (val: number, decimals: number = 0): string => {
     if (isNaN(val) || val === null) {
@@ -466,6 +515,7 @@ const MapBox: FC<MapBoxProps> = ({
 
   return (
     <Box 
+      ref={containerRef}
       sx={{ 
         height: height, 
         width: width, 
@@ -483,6 +533,7 @@ const MapBox: FC<MapBoxProps> = ({
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, position: 'relative', height: '100%' }}>
           <Plot
+            ref={plotRef}
             data={mapData as any}
             layout={mapLayout as any}
             style={{ width: "100%", height: "100%", flexGrow: 1 }}
@@ -508,6 +559,19 @@ const MapBox: FC<MapBoxProps> = ({
               ...mapOptions
             }}
             useResizeHandler={true}
+            onInitialized={(figure, graphDiv) => {
+              // Store reference to the graph div for resize operations
+              plotRef.current = graphDiv;
+              if (graphDiv && window.Plotly) {
+                window.Plotly.Plots.resize(graphDiv);
+              }
+            }}
+            onUpdate={(figure, graphDiv) => {
+              // Force resize when component updates
+              if (graphDiv && window.Plotly) {
+                window.Plotly.Plots.resize(graphDiv);
+              }
+            }}
           />
           {(!mapData || mapData.length === 0 || (mapData[0]?.lat?.length === 0) || (mapData[0]?.lat?.[0] === defaultCenter.lat && mapData[0]?.lon?.[0] === defaultCenter.lon)) && (
             <Box 
