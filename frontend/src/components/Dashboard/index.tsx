@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 import { fetchAllSignals, fetchStraightAverage, fetchSignalsFilterAverage } from "../../store/slices/metricsSlice";
-import { AppDispatch, RootState, store } from "../../store/store";
+import { RootState, store } from "../../store/store";
 import { selectFilterParams } from "../../store/slices/filterSlice";
 import Box from "@mui/material/Box"
 import Grid from "@mui/material/Grid"
@@ -18,11 +18,9 @@ import FormControl from "@mui/material/FormControl"
 import Select from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import InputLabel from "@mui/material/InputLabel"
-import Plot from "react-plotly.js"
 import CircularProgress from "@mui/material/CircularProgress"
-import MapBox, { MapTrace } from "../../components/MapBox"
-import { metricsApi } from "../../services/api/metricsApi";
-import { FilterParams, MetricsFilterRequest } from "../../types/api.types";
+import MapBox from "../../components/MapBox"
+import { MetricsFilterRequest } from "../../types/api.types";
 import mapSettings from "../../utils/mapSettings";
 import { useAppSelector, useAppDispatch } from '../../hooks/useTypedSelector';
 import { consoledebug } from "../../utils/debug";
@@ -157,7 +155,6 @@ export default function Dashboard() {
   const [volMetrics, setVolMetrics] = useState<MetricRow[]>([]);
   const [mapData, setMapData] = useState<any>(null);
   const [mapLoading, setMapLoading] = useState<boolean>(true);
-  // const [metricData, setMetricData] = useState<MetricDataItem[]>([]);
   // const [mapLayout, setMapLayout] = useState<any>({
   //   autosize: true,
   //   hovermode: "closest",
@@ -226,13 +223,13 @@ export default function Dashboard() {
   const dispatch = useAppDispatch();
   const { 
     signals, 
-    straightAverage, 
+    // straightAverage, 
     signalsFilterAverage,
-    loading: reduxLoading
+    // loading: reduxLoading
   } = useAppSelector((state: RootState) => state.metrics);
   
   // Use combined loading state
-  const loading = reduxLoading || straightAverage.loading || signalsFilterAverage.loading;
+  // const loading = reduxLoading || straightAverage.loading || signalsFilterAverage.loading;
   // const loading = reduxLoading;
 
   const commonFilterParams = useSelector(selectFilterParams);
@@ -515,7 +512,7 @@ export default function Dashboard() {
             {/* Performance Metrics */}
             <Grid size={{xs: 12, md: 6, lg: 12}}>
               <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom fontWeight={'bold'}>
                   Performance
                 </Typography>
                 <TableContainer>
@@ -539,7 +536,7 @@ export default function Dashboard() {
             {/* Volume & Equipment */}
             <Grid size={{xs: 12, md: 6, lg: 12}}>
               <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom fontWeight={'bold'}>
                   Volume & Equipment
                 </Typography>
                 <TableContainer>
@@ -560,7 +557,7 @@ export default function Dashboard() {
               </Paper>
             </Grid>
           </Grid>
-          <Paper sx={{ p: 2 }}>
+          {/* <Paper sx={{ p: 2 }}>
             <TableContainer>
               <Table size="small">
                 <TableBody>
@@ -571,7 +568,7 @@ export default function Dashboard() {
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
+          </Paper >*/}
         </Box>
 
         {/* Map Area */}

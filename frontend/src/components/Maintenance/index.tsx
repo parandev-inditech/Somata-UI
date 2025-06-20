@@ -12,7 +12,6 @@ import CircularProgress from "@mui/material/CircularProgress"
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward"
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
 import RemoveIcon from "@mui/icons-material/Remove"
-import Plot from "react-plotly.js"
 import MapBox from "../../components/MapBox"
 import LocationBarChart from "../../components/charts/LocationBarChart"
 import TimeSeriesChart from "../../components/charts/TimeSeriesChart"
@@ -29,7 +28,6 @@ import {
 import { MetricsFilterRequest } from '../../types/api.types'
 import { useSelector } from "react-redux"
 import { selectFilterParams } from "../../store/slices/filterSlice"
-import { RootState } from "../../store/store"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
 
 // Define the available metrics
@@ -41,44 +39,6 @@ const metrics = [
   { id: "communicationUptime", label: "Communication Uptime", key: metricApiKeys.communicationUptime },
 ]
 
-
-// Default filter payload
-const defaultPayload = {
-  dateRange: 4,
-  timePeriod: 4,
-  customStart: null,
-  customEnd: null,
-  daysOfWeek: null,
-  startTime: null,
-  endTime: null,
-  zone_Group: "Central Metro",
-  zone: null,
-  agency: null,
-  county: null,
-  city: null,
-  corridor: null,
-  signalId: "",
-  priority: "",
-  classification: ""
-};
-
-// Types
-interface MetricData {
-  label: string | null;
-  avg: number;
-  delta: number;
-  zoneGroup: string | null;
-  weight: number;
-}
-
-interface Signal {
-  signalID: string;
-  mainStreetName: string;
-  sideStreetName: string;
-  latitude: number;
-  longitude: number;
-  [key: string]: any;
-}
 
 interface LocationMetric {
   label: string;
@@ -462,17 +422,6 @@ export default function Maintenance() {
     }),
     hoverinfo: "text",
   };
-
-  const mapLayout = {
-    autosize: true,
-    hovermode: "closest",
-    mapbox: {
-      style: "carto-positron",
-      center: { lat: 33.789, lon: -84.388 },
-      zoom: 8,
-    },
-    margin: { r: 0, t: 0, b: 0, l: 0 },
-  }
 
   // Get the appropriate legend for the map based on the selected metric
   const getMapLegend = () => {

@@ -7,10 +7,6 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Paper from "@mui/material/Paper"
 import Grid from "@mui/material/Grid"
-import FormControl from "@mui/material/FormControl"
-import Select from "@mui/material/Select"
-import MenuItem from "@mui/material/MenuItem"
-import InputLabel from "@mui/material/InputLabel"
 import Tabs from "@mui/material/Tabs"
 import Tab from "@mui/material/Tab"
 import Plot from "react-plotly.js"
@@ -49,9 +45,9 @@ const taskTypes = [
 ]
 
 export default function TeamsTask() {
-  const [dateRange, setDateRange] = useState("priorYear")
-  const [dateAggregation, setDateAggregation] = useState("monthly")
-  const [region, setRegion] = useState("centralMetro")
+  // const [dateRange, setDateRange] = useState("priorYear")
+  // const [dateAggregation, setDateAggregation] = useState("monthly")
+  // const [region, setRegion] = useState("centralMetro")
   const [currentTab, setCurrentTab] = useState(0)
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {

@@ -4,7 +4,6 @@ import { Box, Typography } from "@mui/material"
 import { PlotData, Layout } from "plotly.js"
 import AppConfig from "../utils/appConfig"
 import { Graph } from "../utils/graph"
-import App from "../App"
 
 interface LineGraphProps {
   data?: any[]

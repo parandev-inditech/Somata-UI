@@ -111,7 +111,7 @@ export const fetchZoneGroups = createAsyncThunk(
     try {
       return await filterApi.getZoneGroups();
     } catch (error) {
-      return rejectWithValue('Failed to fetch zone groups');
+      return rejectWithValue('Failed to fetch zone groups: ' + error);
     }
   }
 );
@@ -122,7 +122,7 @@ export const fetchZones = createAsyncThunk(
     try {
       return await filterApi.getZones();
     } catch (error) {
-      return rejectWithValue('Failed to fetch zones');
+      return rejectWithValue('Failed to fetch zones groups: ' + error);
     }
   }
 );
@@ -153,7 +153,7 @@ export const fetchAgencies = createAsyncThunk(
     try {
       return await filterApi.getAgencies();
     } catch (error) {
-      return rejectWithValue('Failed to fetch agencies');
+      return rejectWithValue('Failed to fetch agencies:' + error);
     }
   }
 );
@@ -164,7 +164,7 @@ export const fetchCounties = createAsyncThunk(
     try {
       return await filterApi.getCounties();
     } catch (error) {
-      return rejectWithValue('Failed to fetch counties');
+      return rejectWithValue('Failed to fetch counties :' + error);
     }
   }
 );
@@ -175,7 +175,7 @@ export const fetchCities = createAsyncThunk(
     try {
       return await filterApi.getCities();
     } catch (error) {
-      return rejectWithValue('Failed to fetch cities');
+      return rejectWithValue('Failed to fetch cities :' + error);
     }
   }
 );
@@ -186,7 +186,7 @@ export const fetchCorridors = createAsyncThunk(
     try {
       return await filterApi.getCorridors();
     } catch (error) {
-      return rejectWithValue('Failed to fetch corridors');
+      return rejectWithValue('Failed to fetch corridors :' + error);
     }
   }
 );
@@ -203,7 +203,7 @@ export const fetchCorridorsByFilter = createAsyncThunk(
     try {
       return await filterApi.getCorridorsByFilter(filter);
     } catch (error) {
-      return rejectWithValue('Failed to fetch filtered corridors');
+      return rejectWithValue('Failed to fetch filtered corridors :' + error);
     }
   }
 );
@@ -214,7 +214,7 @@ export const fetchSubcorridors = createAsyncThunk(
     try {
       return await filterApi.getSubcorridors();
     } catch (error) {
-      return rejectWithValue('Failed to fetch subcorridors');
+      return rejectWithValue('Failed to fetch subcorridors :' + error);
     }
   }
 );
@@ -225,7 +225,7 @@ export const fetchSubcorridorsByCorridor = createAsyncThunk(
     try {
       return await filterApi.getSubcorridorsByCorridor(corridor);
     } catch (error) {
-      return rejectWithValue(`Failed to fetch subcorridors for corridor: ${corridor}`);
+      return rejectWithValue(`Failed to fetch subcorridors for corridor ${corridor} : ${error}`);
     }
   }
 );
@@ -236,7 +236,7 @@ export const fetchPriorities = createAsyncThunk(
     try {
       return await filterApi.getPriorities();
     } catch (error) {
-      return rejectWithValue('Failed to fetch priorities');
+      return rejectWithValue('Failed to fetch priorities:' + error);
     }
   }
 );
@@ -247,7 +247,7 @@ export const fetchClassifications = createAsyncThunk(
     try {
       return await filterApi.getClassifications();
     } catch (error) {
-      return rejectWithValue('Failed to fetch classifications');
+      return rejectWithValue('Failed to fetch classifications:' + error);
     }
   }
 );

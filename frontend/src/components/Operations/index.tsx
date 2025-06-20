@@ -26,7 +26,6 @@ import {
 import { MetricsFilterRequest } from '../../types/api.types'
 import { useSelector } from "react-redux"
 import { selectFilterParams } from "../../store/slices/filterSlice"
-import { RootState } from "../../store/store"
 import { chartTitles } from "../../constants/mapData"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
 
@@ -36,7 +35,7 @@ const metrics = [
   { id: "dailyTrafficVolumes", label: "Daily Traffic Volumes", key: "vpd" },
   { id: "arrivalsOnGreen", label: "Arrivals on Green", key: "aogd" },
   { id: "progressionRatio", label: "Progression Ratio", key: "prd" },
-  { id: "spillbackRatio", label: "Spillback Ratio", key: "qsd" },
+  { id: "spillbackRatio", label: "Spillback Rate", key: "qsd" },
   { id: "peakPeriodSplitFailures", label: "Peak Period Split Failures", key: "sfd" },
   { id: "offPeakSplitFailures", label: "Off-Peak Split Failures", key: "sfo" },
   { id: "travelTimeIndex", label: "Travel Time Index", key: "tti" },
@@ -92,7 +91,7 @@ const metricToSettingsMap: Record<string, string> = {
 
 export default function Operations() {
   // State for selected metric
-  const [selectedMetric, setSelectedMetric] = useState("dailyTrafficVolumes")
+  const [selectedMetric, setSelectedMetric] = useState("throughput")
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
 
   const commonFilterParams = useSelector(selectFilterParams);
@@ -474,21 +473,23 @@ export default function Operations() {
       <Tabs
         value={selectedMetric}
         onChange={handleMetricChange}
-        variant="scrollable"
+        variant="fullWidth"
         scrollButtons="auto"
         sx={{
           mb: 2,
           borderBottom: 1,
           borderColor: "divider",
+          width: '100%',
           "& .MuiTab-root": {
             textTransform: "none",
             minWidth: "auto",
             px: 2,
+            flex: 1,
           },
         }}
       >
         {metrics.map((metric) => (
-          <Tab key={metric.id} label={metric.label} value={metric.id} />
+          <Tab key={metric.id} label={metric.label} value={metric.id} sx={{ flex: 1 }} />
         ))}
       </Tabs>
       {loading ? (

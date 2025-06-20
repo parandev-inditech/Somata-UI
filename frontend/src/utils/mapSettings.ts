@@ -1,5 +1,4 @@
 import colors from './colors';
-import Metrics from './metrics';
 
 // Define interface for map config settings
 export interface MapConfig {

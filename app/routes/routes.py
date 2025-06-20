@@ -1,14 +1,11 @@
-from jinja2 import Environment, FileSystemLoader
-from fastapi import APIRouter, Request, HTTPException, Depends
+from pathlib import Path
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
-from pathlib import Path
-import os
+from jinja2 import Environment, FileSystemLoader
 from app.config import ENV, API_BASE_URL
 
-# from app.config import get_settings, Settings
 router = APIRouter()
-# settings = get_settings()
 
 
 
@@ -37,7 +34,7 @@ router.mount("/assets", StaticFiles(directory=frontend_dist_path / "assets"), na
 
 @router.get("/", include_in_schema=False)
 @router.get("/{full_path:path}", include_in_schema=False)
-async def serve_frontend(request: Request, full_path: str):
+async def serve_frontend(_request: Request, full_path: str):
     """Serve frontend routes (SPA fallback to index.html)"""
     # Check if it's a request for a specific file (has file extension)
     if "." in full_path:
@@ -45,9 +42,8 @@ async def serve_frontend(request: Request, full_path: str):
         file_path = frontend_dist_path / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
-    
+        raise HTTPException(status_code=404, detail="File not found")
+
     # For routes without file extensions, serve index.html (SPA routing)
     try:
         template = templates_env.get_template("index.html")

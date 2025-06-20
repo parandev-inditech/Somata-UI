@@ -2,17 +2,16 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { Outlet, useLocation } from "react-router-dom"
 import { styled } from "@mui/material/styles"
-import { useLocation } from "react-router-dom"
-import { Outlet } from "react-router-dom"
 import Box from "@mui/material/Box"
-import Header from "../Header"
+import Header from "../Header";
 import SideNav from "../SideNav"
 import FilterSidebar from "../FilterSidebar"
 import FilterChipList from "../FilterChipList"
 import IconButton from "@mui/material/IconButton"
-import FilterAltIcon from '@mui/icons-material/FilterAlt'
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 
 const expandedDrawerWidth = 240
 const collapsedDrawerWidth = 65
@@ -42,12 +41,13 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "sideNavWidt
 }))
 
 export default function Layout() {
-  const [sideNavExpanded, setSideNavExpanded] = useState(false)
+  const [sideNavExpanded, setSideNavExpanded] = useState(false) // Start collapsed
   const [filterOpen, setFilterOpen] = useState(false)
-  const location = useLocation()
+  const location = useLocation();
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const hideFilterPath = ["/watchdog", "/health-metrics", "/signal-info", "/reports", "/about"]
-  const shouldShowFilter = !hideFilterPath.some(path => location.pathname.includes(path))
+  const hideFilterPath = ["/watchdog", "/health-metrics", "/signal-info", "/reports", "/about"];
+  const shouldShowFilter = !hideFilterPath.some(path => location.pathname.includes(path));
 
   const handleSideNavToggle = () => {
     setSideNavExpanded(!sideNavExpanded)
@@ -56,6 +56,32 @@ export default function Layout() {
   const handleFilterToggle = () => {
     setFilterOpen(!filterOpen)
   }
+
+  const handleSideNavMouseEnter = () => {
+    // Clear any pending close timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    // Expand immediately on hover
+    setSideNavExpanded(true);
+  }
+
+  const handleSideNavMouseLeave = () => {
+    // Add a small delay before collapsing to prevent flickering
+    hoverTimeoutRef.current = setTimeout(() => {
+      setSideNavExpanded(false);
+    }, 300); // 300ms delay
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const sideNavWidth = sideNavExpanded ? expandedDrawerWidth : collapsedDrawerWidth
 
@@ -66,6 +92,8 @@ export default function Layout() {
         open={true} 
         expanded={sideNavExpanded} 
         width={sideNavWidth}
+        onMouseEnter={handleSideNavMouseEnter}
+        onMouseLeave={handleSideNavMouseLeave}
       />
       <Main sideNavWidth={sideNavWidth}>
         <Box sx={{ pt: 8, height: "calc(100vh - 64px)", overflowY: "auto", overflowX: "auto" }}>

@@ -1,8 +1,6 @@
 import { useState } from "react"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
-import Paper from "@mui/material/Paper"
-import Grid from "@mui/material/Grid"
 import Accordion from "@mui/material/Accordion"
 import AccordionSummary from "@mui/material/AccordionSummary"
 import AccordionDetails from "@mui/material/AccordionDetails"

@@ -43,9 +43,9 @@ const APP_LINKS = [
 ]
 
 interface HeaderProps {
-  sideNavOpen: boolean
+  // sideNavOpen: boolean
   onSideNavToggle: () => void
-  onFilterToggle: () => void
+  // onFilterToggle: () => void
 }
 
 interface AppConfig {
@@ -53,7 +53,7 @@ interface AppConfig {
   hasBtnGdotApplications: boolean;
 }
 
-export default function Header({ sideNavOpen, onSideNavToggle, onFilterToggle }: HeaderProps) {
+export default function Header({ onSideNavToggle }: HeaderProps) {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [contactAnchorEl, setContactAnchorEl] = useState<null | HTMLElement>(null)
@@ -80,9 +80,9 @@ export default function Header({ sideNavOpen, onSideNavToggle, onFilterToggle }:
     setPatchData(["v1.1", "Initial release", "Bug fixes"])
   }, [])
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
+  // const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  //   setAnchorEl(event.currentTarget)
+  // }
 
   const handleMenuClose = () => {
     setAnchorEl(null)

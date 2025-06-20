@@ -5,7 +5,6 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
-import FormLabel from "@mui/material/FormLabel";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -13,7 +12,6 @@ import Paper from "@mui/material/Paper";
 
 interface ContactFormProps {
   onSubmit: (formData: ContactFormData) => void;
-  onCancel: () => void;
 }
 
 export interface ContactFormData {
@@ -25,7 +23,7 @@ export interface ContactFormData {
   message: string;
 }
 
-export default function ContactForm({ onSubmit, onCancel }: ContactFormProps) {
+export default function ContactForm({ onSubmit }: ContactFormProps) {
   const [formData, setFormData] = useState<ContactFormData>({
     firstName: '',
     lastName: '',

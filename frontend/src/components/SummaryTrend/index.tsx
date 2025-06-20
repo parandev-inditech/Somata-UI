@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Grid, Box, CircularProgress, Typography, Container, Paper } from '@mui/material';
+import { Grid, Box, CircularProgress, Typography, Container, Paper } from '@mui/material';
 import LineGraph from '../LineGraph';
 import { Graph } from '../../utils/graph';
 import { Metrics } from '../../utils/metrics';
@@ -7,7 +7,6 @@ import { Colors } from '../../utils/colors';
 import { useAppDispatch, useAppSelector } from '../../hooks/useTypedSelector';
 import { fetchSummaryTrends } from '../../store/slices/summaryTrendSlice';
 import { FilterParams } from '../../types/api.types';
-import FilterChipList from '../FilterChipList';
 import AppConfig from '../../utils/appConfig';
 import { useSelector } from 'react-redux';
 import { selectFilterParams } from '../../store/slices/filterSlice';

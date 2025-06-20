@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useMemo } from "react";
+import { FC, useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
@@ -101,7 +101,7 @@ const MapBox: FC<MapBoxProps> = ({
   emptyMessage = "No map data available for this selection",
   renderLegend,
   mapOptions = {},
-  filter = {}
+  // filter = {}
 }) => {
   const dispatch: AppDispatch = useDispatch();
   const signals = useSelector((state: any) => state.metrics.signals);
@@ -218,7 +218,7 @@ const MapBox: FC<MapBoxProps> = ({
       setMapData((prevMapData) => {
         const newData = (data as MapTrace[]).map(trace => ({ 
           ...trace, 
-          type: "scattermapbox" as "scattermapbox"
+          type: "scattermapbox" as const
         }));
         
         // Check if data actually changed before updating state

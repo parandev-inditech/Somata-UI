@@ -28,8 +28,8 @@ interface SideNavProps {
   open?: boolean
   expanded?: boolean
   width: number
-  // onMouseEnter?: () => void
-  // onMouseLeave?: () => void
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 interface NavItem {
@@ -38,7 +38,7 @@ interface NavItem {
   path: string
 }
 
-export default function SideNav({ open = true, expanded = true, width }: SideNavProps) {
+export default function SideNav({ open = true, expanded = true, width, onMouseEnter, onMouseLeave }: SideNavProps) {
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -64,8 +64,8 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
     <Drawer
       variant="permanent"
       open={isOpen}
-      // onMouseEnter={onMouseEnter}
-      // onMouseLeave={onMouseLeave}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       sx={{
         width: width,
         flexShrink: 0,
@@ -75,7 +75,7 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
           overflowX: "hidden",
           backgroundColor: '#ffffff', // Light grey similar to GDOT original
           color: '#333333', 
-          // transition: 'width 0.3s ease-in-out',
+          transition: 'width 0.3s ease-in-out',
         },
       }}
     >
@@ -104,16 +104,15 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
                 }}
               >
                 <ListItemIcon sx={{ 
-                  minWidth: isExpanded ? 56 : 'auto', // Keep consistent width
-                  mr: isExpanded ? 3 : 'auto', // Smooth margin transition
+                  minWidth: isExpanded ? 56 : 56, // Keep consistent width
+                  mr: isExpanded ? 3 : 0, // Smooth margin transition
                   justifyContent: 'center',
                   color: '#444',
-                  // transition: 'all 0.3s ease-in-out',
+                  transition: 'all 0.3s ease-in-out',
                 }}>
                   {item.icon}
                 </ListItemIcon>
-                {isExpanded && <ListItemText primary={item.text} />}
-                {/* <ListItemText 
+                <ListItemText 
                   primary={item.text} 
                   sx={{
                     opacity: isExpanded ? 1 : 0,
@@ -121,7 +120,7 @@ export default function SideNav({ open = true, expanded = true, width }: SideNav
                     overflow: 'hidden',
                     whiteSpace: 'nowrap',
                   }}
-                /> */}
+                />
               </ListItemButton>
             </ListItem>
           ))}

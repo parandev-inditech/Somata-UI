@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { MapConfig } from '../utils/mapSettings';
-import colors from '../utils/colors';
 import { consoledebug } from '../utils/debug';
 
 interface Signal {

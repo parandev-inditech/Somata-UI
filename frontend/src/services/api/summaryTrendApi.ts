@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { FilterParams } from '../../types/api.types';
 import { SUMMARY_TREND_ENDPOINTS } from '../../constants/apiEndpoints';
 import { apiClient } from './apiClient';

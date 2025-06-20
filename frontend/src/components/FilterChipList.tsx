@@ -303,9 +303,10 @@ const FilterChipList: React.FC<FilterChipListProps> = ({ filtersToHide = [], onC
       boxShadow: 1,
       mb: 1
     }}>
+
       <Typography variant="body2" sx={{ marginRight: 1, fontWeight: 'bold' }}>
         Current Filters:
-      </Typography>
+      </Typography> 
       {activeFilters.map((filter) => (
         <Chip
           key={filter.key}

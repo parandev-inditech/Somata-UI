@@ -188,7 +188,7 @@ const RegionStatus = () => {
 
         // Format as MM-01-YYYY for the API
         const startDate = `${startMonth}-01-${startYear}`;
-        
+
         dispatch(fetchRegionAverages(startDate));
     }, [dispatch]);
 
@@ -688,7 +688,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
         <Box sx={{ 
             display: 'flex',
             flexDirection: 'column',
-            height: '80%',
+            height: '88%',
             width: '100%',
             minWidth: 0, // Allow shrinking below content width
         }}>
@@ -762,7 +762,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                             .map((row, index) => (
                                 <StyledTableRow key={index}>
                                     {columns.map((column) => (
-                                        <StyledTableCell key={column.id} sx={{ minWidth: 150, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center' }}>
+                                        <StyledTableCell key={column.id} sx={{ minWidth: 150, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center'}}>
                                             {row[column.id as keyof typeof row]}
                                         </StyledTableCell>
                                     ))}
@@ -770,7 +770,7 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
                         ))}
                         {filteredData.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={columns.length} align="center" sx={{ py: 3, textAlign: 'center' }}>
+                                <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
                                     <Typography variant="body1" color="text.secondary">
                                         No results found
                                     </Typography>
@@ -1204,16 +1204,16 @@ const HealthMetrics = () => {
                 <Tabs 
                     value={tabValue} 
                     onChange={handleTabChange}
-                    variant="scrollable"
+                    variant="fullWidth"
                     scrollButtons="auto"
                 >
-                    <Tab label="Region Status" />
-                    <Tab label="Maintenance" />
-                    <Tab label="Maintenance Trend" />
-                    <Tab label="Operations" />
-                    <Tab label="Operation Trend" />
-                    <Tab label="Safety" />
-                    <Tab label="Safety Trend" />
+                    <Tab label="Region Status" sx={{ flex: 1 }} />
+                    <Tab label="Maintenance" sx={{ flex: 1 }} />
+                    <Tab label="Maintenance Trend" sx={{ flex: 1 }} />
+                    <Tab label="Operations" sx={{ flex: 1 }} />
+                    <Tab label="Operation Trend" sx={{ flex: 1 }} />
+                    <Tab label="Safety" sx={{ flex: 1 }} />
+                    <Tab label="Safety Trend" sx={{ flex: 1 }} />
                 </Tabs>
             </Box>
             <Box sx={{ 

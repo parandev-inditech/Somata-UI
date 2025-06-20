@@ -1,5 +1,4 @@
 "use client"
-
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useSelector } from 'react-redux'
@@ -33,7 +32,7 @@ import { RootState } from "../../store/store"
 import { useAppDispatch } from "../../store/hooks"
 import { fetchWatchdogData } from "../../store/slices/watchdogSlice"
 import { WatchdogParams } from "../../types/api.types"
-import { WatchdogData, WatchdogTableData } from "../../services/api/watchdogApi"
+import { WatchdogTableData } from "../../services/api/watchdogApi"
 import DateRangePickerComponent from "../DateRangePicker"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
 import { debounce } from 'lodash'
@@ -313,7 +312,7 @@ export default function Watchdog() {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "auto" }}>
       {/* Filter Controls */}
-      <Box sx={{ p: 2, display: "flex", flexWrap: "wrap", gap: 1, bgcolor: "#f5f5f5" }}>
+      <Box sx={{ p: 1, display: "flex", flexWrap: "wrap", gap: 1, bgcolor: "#f5f5f5" }}>
         {/* Region */}
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel id="region-label">Region</InputLabel>
@@ -391,9 +390,9 @@ export default function Watchdog() {
       </Box>
 
       {/* View Tabs */}
-      <Tabs value={view} onChange={handleViewChange} sx={{ borderBottom: 1, borderColor: "divider" }}>
-        <Tab label="Plot" value="plot" />
-        <Tab label="Table" value="table" />
+      <Tabs value={view} onChange={handleViewChange} variant="fullWidth" sx={{ borderBottom: 1, borderColor: "divider", width: '100%' }}>
+        <Tab label="Plot" value="plot" sx={{ flex: 1 }} />
+        <Tab label="Table" value="table" sx={{ flex: 1 }} />
       </Tabs>
 
       {/* Table View */}
