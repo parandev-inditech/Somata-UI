@@ -402,7 +402,7 @@ export default function Watchdog() {
             <TableHead>
               <TableRow>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)", textAlign: "center" }}
                   sortDirection={orderBy === "zone" ? order : false}
                 >
                   <TableSortLabel
@@ -415,7 +415,7 @@ export default function Watchdog() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)", textAlign: "center" }}
                   sortDirection={orderBy === "corridor" ? order : false}
                 >
                   <TableSortLabel
@@ -428,7 +428,7 @@ export default function Watchdog() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)", textAlign: "center" }}
                   sortDirection={orderBy === "signalID" ? order : false}
                 >
                   <TableSortLabel
@@ -441,7 +441,7 @@ export default function Watchdog() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)", textAlign: "center" }}
                   sortDirection={orderBy === "name" ? order : false}
                 >
                   <TableSortLabel
@@ -454,7 +454,7 @@ export default function Watchdog() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)", textAlign: "center" }}
                   sortDirection={orderBy === "alert" ? order : false}
                 >
                   <TableSortLabel
@@ -467,7 +467,7 @@ export default function Watchdog() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", borderRight: "1px solid rgba(255, 255, 255, 0.2)", textAlign: "center" }}
                   sortDirection={orderBy === "occurrences" ? order : false}
                 >
                   <TableSortLabel
@@ -480,7 +480,7 @@ export default function Watchdog() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell 
-                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px" }}
+                  sx={{ backgroundColor: "#2196f3", color: "white", fontWeight: "normal", padding: "12px 16px", textAlign: "center" }}
                   sortDirection={orderBy === "streak" ? order : false}
                 >
                   <TableSortLabel
@@ -503,11 +503,11 @@ export default function Watchdog() {
                     "&:hover": { bgcolor: "rgba(0, 0, 0, 0.08)" },
                   }}
                 >
-                  <TableCell>{row.zone}</TableCell>
-                  <TableCell>{row.corridor}</TableCell>
-                  <TableCell>{row.signalID}</TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.alert}</TableCell>
+                  <TableCell align="center">{row.zone}</TableCell>
+                  <TableCell align="center">{row.corridor}</TableCell>
+                  <TableCell align="center">{row.signalID}</TableCell>
+                  <TableCell align="center">{row.name}</TableCell>
+                  <TableCell align="center">{row.alert}</TableCell>
                   <TableCell align="center">{row.occurrences}</TableCell>
                   <TableCell align="center">{row.streak}</TableCell>
                 </TableRow>
