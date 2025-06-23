@@ -163,6 +163,18 @@ export default function Dashboard() {
   const [volLoading, setVolLoading] = useState<boolean>(false);
   const [volError, setVolError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  
+  // Individual metric loading states
+  const [metricLoadingStates, setMetricLoadingStates] = useState<Record<string, boolean>>({});
+  
+  // Helper functions for individual metric loading states
+  const setMetricLoading = (measure: string, loading: boolean) => {
+    setMetricLoadingStates(prev => ({ ...prev, [measure]: loading }));
+  };
+  
+  const isMetricLoading = (measure: string) => {
+    return metricLoadingStates[measure] || false;
+  };
   // const [mapLayout, setMapLayout] = useState<any>({
   //   autosize: true,
   //   hovermode: "closest",
@@ -245,10 +257,12 @@ export default function Dashboard() {
 
   // Retry functions for each section
   const retryPerfMetrics = async () => {
-    setPerfLoading(true);
     setPerfError(null);
     
     try {
+      // Set loading state for all performance metrics
+      performanceMetricCodes.forEach(measure => setMetricLoading(measure, true));
+      
       const perfMetricsData = await Promise.all(
         performanceMetricCodes.map(async (measure) => {
           const params: MetricsFilterRequest = {
@@ -276,15 +290,21 @@ export default function Dashboard() {
               console.error(`Invalid response for ${measure}:`, straightAverageData);
               value = NaN;
             }
-              
-            return {
+            
+            const result = {
               label: metricLabels[measure],
               value: formatMetricValue(value, measure),
               unit: getMetricUnit(measure),
               measure,
             };
+            
+            // Update individual metric loading state
+            setMetricLoading(measure, false);
+            
+            return result;
           } catch (error) {
             console.error(`Error fetching ${measure}:`, error);
+            setMetricLoading(measure, false);
             return {
               label: metricLabels[measure],
               value: 'N/A',
@@ -299,16 +319,18 @@ export default function Dashboard() {
     } catch (error) {
       setPerfError(error instanceof Error ? error.message : 'Failed to fetch performance metrics');
       console.error("Error fetching performance metrics:", error);
-    } finally {
-      setPerfLoading(false);
+      // Clear loading states for all performance metrics on error
+      performanceMetricCodes.forEach(measure => setMetricLoading(measure, false));
     }
   };
 
   const retryVolMetrics = async () => {
-    setVolLoading(true);
     setVolError(null);
     
     try {
+      // Set loading state for all volume metrics
+      volumeMetricCodes.forEach(measure => setMetricLoading(measure, true));
+      
       const volMetricsData = await Promise.all(
         volumeMetricCodes.map(async (measure) => {
           const params: MetricsFilterRequest = {
@@ -336,15 +358,21 @@ export default function Dashboard() {
               console.error(`Invalid response for ${measure}:`, straightAverageData);
               value = NaN;
             }
-              
-            return {
+            
+            const result = {
               label: metricLabels[measure],
               value: formatMetricValue(value, measure),
               unit: getMetricUnit(measure),
               measure,
             };
+            
+            // Update individual metric loading state
+            setMetricLoading(measure, false);
+            
+            return result;
           } catch (error) {
             console.error(`Error fetching ${measure}:`, error);
+            setMetricLoading(measure, false);
             return {
               label: metricLabels[measure],
               value: 'N/A',
@@ -359,8 +387,8 @@ export default function Dashboard() {
     } catch (error) {
       setVolError(error instanceof Error ? error.message : 'Failed to fetch volume metrics');
       console.error("Error fetching volume metrics:", error);
-    } finally {
-      setVolLoading(false);
+      // Clear loading states for all volume metrics on error
+      volumeMetricCodes.forEach(measure => setMetricLoading(measure, false));
     }
   };
 
@@ -511,129 +539,168 @@ export default function Dashboard() {
   // Fetch data when component mounts or when filters are applied
   useEffect(() => {    
     const fetchData = async () => {
-      // Fetch performance metrics
-      setPerfLoading(true);
+      // Initialize both sections
+      setPerfLoading(false);
       setPerfError(null);
-      
-      try {
-        const perfMetricsData = await Promise.all(
-          performanceMetricCodes.map(async (measure) => {
-            const params: MetricsFilterRequest = {
-              source: "main",
-              measure,
-            };
-            
-            try {
-              // Dispatch the action to fetch straight average
-              await dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
-              
-              // Get the most current state AFTER the dispatch completes
-              const stateAfterDispatch = store.getState();
-              const straightAverageData = stateAfterDispatch.metrics.straightAverage.data;
-              
-              let value: number;
-              
-              // Check the response structure
-              if (straightAverageData !== null) {
-                if (typeof straightAverageData === 'number') {
-                  value = straightAverageData;
-                } else if (typeof straightAverageData === 'object' && 'avg' in straightAverageData) {
-                  value = (straightAverageData as any).avg;
-                } else {
-                  console.error(`Unexpected response structure for ${measure}:`, straightAverageData);
-                  value = NaN;
-                }
-              } else {
-                console.error(`Invalid response for ${measure}:`, straightAverageData);
-                value = NaN;
-              }
-                
-              return {
-                label: metricLabels[measure],
-                value: formatMetricValue(value, measure),
-                unit: getMetricUnit(measure),
-                measure,
-              };
-            } catch (error) {
-              console.error(`Error fetching ${measure}:`, error);
-              return {
-                label: metricLabels[measure],
-                value: 'N/A',
-                unit: getMetricUnit(measure),
-                measure,
-              };
-            }
-          })
-        );
-        
-        setPerfMetrics(perfMetricsData);
-      } catch (error) {
-        setPerfError(error instanceof Error ? error.message : 'Failed to fetch performance metrics');
-        console.error("Error fetching performance metrics:", error);
-      } finally {
-        setPerfLoading(false);
-      }
-      
-      // Fetch volume metrics
-      setVolLoading(true);
+      setVolLoading(false);
       setVolError(null);
       
-      try {
-        const volMetricsData = await Promise.all(
-          volumeMetricCodes.map(async (measure) => {
-            const params: MetricsFilterRequest = {
-              source: "main",
-              measure,
-            };
-            
-            try {
-              await dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+      // Initialize all metrics with loading state
+      const initialPerfMetrics = performanceMetricCodes.map(measure => ({
+        label: metricLabels[measure],
+        value: '',
+        unit: getMetricUnit(measure),
+        measure,
+      }));
+      setPerfMetrics(initialPerfMetrics);
+      
+      const initialVolMetrics = volumeMetricCodes.map(measure => ({
+        label: metricLabels[measure],
+        value: '',
+        unit: getMetricUnit(measure),
+        measure,
+      }));
+      setVolMetrics(initialVolMetrics);
+      
+      // Set loading state for all metrics
+      performanceMetricCodes.forEach(measure => setMetricLoading(measure, true));
+      volumeMetricCodes.forEach(measure => setMetricLoading(measure, true));
+      
+      // Fetch performance and volume metrics in parallel
+      const fetchPerfMetrics = async () => {
+        try {
+          const perfMetricsData = await Promise.all(
+            performanceMetricCodes.map(async (measure) => {
+              const params: MetricsFilterRequest = {
+                source: "main",
+                measure,
+              };
               
-              // Get the most current state AFTER the dispatch completes
-              const stateAfterDispatch = store.getState();
-              const straightAverageData = stateAfterDispatch.metrics.straightAverage.data;
-              
-              let value: number;
-              
-              if (straightAverageData !== null) {
-                if (typeof straightAverageData === 'number') {
-                  value = straightAverageData;
-                } else if (typeof straightAverageData === 'object' && 'avg' in straightAverageData) {
-                  value = (straightAverageData as any).avg;
+              try {
+                // Dispatch the action to fetch straight average
+                await dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+                
+                // Get the most current state AFTER the dispatch completes
+                const stateAfterDispatch = store.getState();
+                const straightAverageData = stateAfterDispatch.metrics.straightAverage.data;
+                
+                let value: number;
+                
+                // Check the response structure
+                if (straightAverageData !== null) {
+                  if (typeof straightAverageData === 'number') {
+                    value = straightAverageData;
+                  } else if (typeof straightAverageData === 'object' && 'avg' in straightAverageData) {
+                    value = (straightAverageData as any).avg;
+                  } else {
+                    console.error(`Unexpected response structure for ${measure}:`, straightAverageData);
+                    value = NaN;
+                  }
                 } else {
-                  console.error(`Unexpected response structure for ${measure}:`, straightAverageData);
+                  console.error(`Invalid response for ${measure}:`, straightAverageData);
                   value = NaN;
                 }
-              } else {
-                console.error(`Invalid response for ${measure}:`, straightAverageData);
-                value = NaN;
-              }
                 
-              return {
-                label: metricLabels[measure],
-                value: formatMetricValue(value, measure),
-                unit: getMetricUnit(measure),
+                const result = {
+                  label: metricLabels[measure],
+                  value: formatMetricValue(value, measure),
+                  unit: getMetricUnit(measure),
+                  measure,
+                };
+                
+                // Update individual metric loading state
+                setMetricLoading(measure, false);
+                
+                return result;
+              } catch (error) {
+                console.error(`Error fetching ${measure}:`, error);
+                setMetricLoading(measure, false);
+                return {
+                  label: metricLabels[measure],
+                  value: 'N/A',
+                  unit: getMetricUnit(measure),
+                  measure,
+                };
+              }
+            })
+          );
+          
+          setPerfMetrics(perfMetricsData);
+        } catch (error) {
+          setPerfError(error instanceof Error ? error.message : 'Failed to fetch performance metrics');
+          console.error("Error fetching performance metrics:", error);
+          // Clear loading states for all performance metrics on error
+          performanceMetricCodes.forEach(measure => setMetricLoading(measure, false));
+        }
+      };
+      
+      const fetchVolMetrics = async () => {
+        try {
+          const volMetricsData = await Promise.all(
+            volumeMetricCodes.map(async (measure) => {
+              const params: MetricsFilterRequest = {
+                source: "main",
                 measure,
               };
-            } catch (error) {
-              console.error(`Error fetching ${measure}:`, error);
-              return {
-                label: metricLabels[measure],
-                value: 'N/A',
-                unit: getMetricUnit(measure),
-                measure,
-              };
-            }
-          })
-        );
-        
-        setVolMetrics(volMetricsData);
-      } catch (error) {
-        setVolError(error instanceof Error ? error.message : 'Failed to fetch volume metrics');
-        console.error("Error fetching volume metrics:", error);
-      } finally {
-        setVolLoading(false);
-      }
+              
+              try {
+                await dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+                
+                // Get the most current state AFTER the dispatch completes
+                const stateAfterDispatch = store.getState();
+                const straightAverageData = stateAfterDispatch.metrics.straightAverage.data;
+                
+                let value: number;
+                
+                if (straightAverageData !== null) {
+                  if (typeof straightAverageData === 'number') {
+                    value = straightAverageData;
+                  } else if (typeof straightAverageData === 'object' && 'avg' in straightAverageData) {
+                    value = (straightAverageData as any).avg;
+                  } else {
+                    console.error(`Unexpected response structure for ${measure}:`, straightAverageData);
+                    value = NaN;
+                  }
+                } else {
+                  console.error(`Invalid response for ${measure}:`, straightAverageData);
+                  value = NaN;
+                }
+                
+                const result = {
+                  label: metricLabels[measure],
+                  value: formatMetricValue(value, measure),
+                  unit: getMetricUnit(measure),
+                  measure,
+                };
+                
+                // Update individual metric loading state
+                setMetricLoading(measure, false);
+                
+                return result;
+              } catch (error) {
+                console.error(`Error fetching ${measure}:`, error);
+                setMetricLoading(measure, false);
+                return {
+                  label: metricLabels[measure],
+                  value: 'N/A',
+                  unit: getMetricUnit(measure),
+                  measure,
+                };
+              }
+            })
+          );
+          
+          setVolMetrics(volMetricsData);
+        } catch (error) {
+          setVolError(error instanceof Error ? error.message : 'Failed to fetch volume metrics');
+          console.error("Error fetching volume metrics:", error);
+          // Clear loading states for all volume metrics on error
+          volumeMetricCodes.forEach(measure => setMetricLoading(measure, false));
+        }
+      };
+      
+      // Execute both fetch functions in parallel
+      await Promise.all([fetchPerfMetrics(), fetchVolMetrics()]);
     };
     
     fetchData();
@@ -721,12 +788,18 @@ export default function Dashboard() {
                   </Box>
                 ) : (
                   <TableContainer sx={{ flex: 1 }}>
-                      <Table size="small">
+                      <Table size="small" sx={{ height: '100%' }}>
                         <TableBody>
                           {perfMetrics.map((row) => (
                             <TableRow key={row.label}>
                               <TableCell>{row.label}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>{row.value}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                                {isMetricLoading(row.measure) ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  row.value
+                                )}
+                              </TableCell>
                               <TableCell align="right" sx={{ width: 50, fontWeight: 'bold' }}>
                                 {row.unit}
                               </TableCell>
@@ -772,12 +845,18 @@ export default function Dashboard() {
                   </Box>
                 ) : (
                   <TableContainer sx={{ flex: 1 }}>
-                      <Table size="small">
+                      <Table size="small" sx={{ height: '100%' }}>
                         <TableBody>
                           {volMetrics.map((row) => (
                             <TableRow key={row.label}>
                               <TableCell>{row.label}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>{row.value}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                                {isMetricLoading(row.measure) ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  row.value
+                                )}
+                              </TableCell>
                               <TableCell align="right" sx={{ width: 50, fontWeight: 'bold' }}>
                                 {row.unit}
                               </TableCell>
