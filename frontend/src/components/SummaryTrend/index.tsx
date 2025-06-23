@@ -12,6 +12,7 @@ import { useSelector } from 'react-redux';
 import { selectFilterParams } from '../../store/slices/filterSlice';
 import { RootState } from '../../store/store';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
+import ErrorDisplay from '../ErrorDisplay';
 
 const SummaryTrend: React.FC = () => {
   useDocumentTitle();
@@ -271,31 +272,25 @@ const SummaryTrend: React.FC = () => {
     setHourlyStrings(commonFilterParams);
   }, [filtersApplied]);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box display="flex" justifyContent="center" p={3}>
-        <Typography color="error">Error loading data: {error}</Typography>
-      </Box>
-    );
-  }
+  // Retry function for error handling
+  const retryData = () => {
+    dispatch(fetchSummaryTrends(commonFilterParams));
+  };
 
   return (
-    <>      
-      {data && (
-        <Container maxWidth={false}>
-          <Grid container spacing={3}>
-            <Grid size={{xs: 12, md: 6}}>
-              <Paper sx={{ p: 3, boxShadow: 1 }}>
-                <Typography variant="h6" sx={{ mb: 1, fontWeight: 'medium' }}>Performance</Typography>
-                
+    <Container maxWidth={false}>
+      <Grid container spacing={3}>
+        <Grid size={{xs: 12, md: 6}}>
+          <Paper sx={{ p: 3, boxShadow: 1 }}>
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 'medium' }}>Performance</Typography>
+            {error ? (
+              <ErrorDisplay onRetry={retryData} height="400px" />
+            ) : loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <CircularProgress />
+              </Box>
+            ) : data ? (
+              <>
                 <LineGraph 
                   data={data.tp} 
                   title={tpTitle}
@@ -351,13 +346,22 @@ const SummaryTrend: React.FC = () => {
                   graph={ptiGraph}
                   metrics={ptiGraphMetrics}
                 />
-              </Paper>
-            </Grid>
-            
-            <Grid size={{xs: 12, md: 6}}>
-              <Paper sx={{ p: 3, boxShadow: 1 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium' }}>Volumes and Equipment</Typography>
-                
+              </>
+            ) : null}
+          </Paper>
+        </Grid>
+        
+        <Grid size={{xs: 12, md: 6}}>
+          <Paper sx={{ p: 3, boxShadow: 1 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium' }}>Volumes and Equipment</Typography>
+            {error ? (
+              <ErrorDisplay onRetry={retryData} height="400px" />
+            ) : loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <CircularProgress />
+              </Box>
+            ) : data ? (
+              <>
                 <LineGraph 
                   data={data[vpString]} 
                   title={dtvTitle}
@@ -413,12 +417,12 @@ const SummaryTrend: React.FC = () => {
                   graph={cuGraph}
                   metrics={cuGraphMetrics}
                 />
-              </Paper>
-            </Grid>
-          </Grid>
-        </Container>
-      )}
-    </>
+              </>
+            ) : null}
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

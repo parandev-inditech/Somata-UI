@@ -15,6 +15,7 @@ import RemoveIcon from "@mui/icons-material/Remove"
 import MapBox from "../../components/MapBox"
 import LocationBarChart from "../../components/charts/LocationBarChart"
 import TimeSeriesChart from "../../components/charts/TimeSeriesChart"
+import ErrorDisplay from "../ErrorDisplay"
 import { metricApiKeys, chartTitles } from "../../constants/mapData"
 import mapSettings from "../../utils/mapSettings"
 import { useAppDispatch, useAppSelector } from '../../hooks/useTypedSelector'
@@ -108,13 +109,11 @@ export default function Maintenance() {
     straightAverage,
     metricsFilter,
     metricsAverage,
-    signalsFilterAverage
+    signalsFilterAverage,
+    error: signalsError
   } = useAppSelector(state => state.metrics);
   
-  const loading = straightAverage.loading || 
-                  metricsFilter.loading || 
-                  metricsAverage.loading || 
-                  signalsFilterAverage.loading;
+  // Remove global loading - we'll use section-specific loading instead
 
   // Memoize the current metric to prevent unnecessary recalculations
   const currentMetric = useMemo(() => 
@@ -216,6 +215,43 @@ export default function Maintenance() {
   const handleLocationClick = useCallback((location: string) => {
     setSelectedLocation(location === selectedLocation ? null : location);
   }, [selectedLocation]);
+
+  // Retry functions for each section
+  const retryMetricCard = useCallback(() => {
+    const params: MetricsFilterRequest = {
+      source: "main",
+      measure: selectedMetricKey
+    };
+    dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+  }, [selectedMetricKey, commonFilterParams, dispatch]);
+
+  const retryMapData = useCallback(() => {
+    const params: MetricsFilterRequest = {
+      source: "main",
+      measure: selectedMetricKey
+    };
+    dispatch(fetchAllSignals());
+    dispatch(fetchSignalsFilterAverage({ params, filterParams: commonFilterParams }));
+  }, [selectedMetricKey, commonFilterParams, dispatch]);
+
+  const retryLocationBarChart = useCallback(() => {
+    const params: MetricsFilterRequest = {
+      source: "main",
+      measure: selectedMetricKey
+    };
+    dispatch(fetchMetricsAverage({ 
+      params: { ...params, dashboard: false }, 
+      filterParams: commonFilterParams 
+    }));
+  }, [selectedMetricKey, commonFilterParams, dispatch]);
+
+  const retryTimeSeriesChart = useCallback(() => {
+    const params: MetricsFilterRequest = {
+      source: "main",
+      measure: selectedMetricKey
+    };
+    dispatch(fetchMetricsFilter({ params, filterParams: commonFilterParams }));
+  }, [selectedMetricKey, commonFilterParams, dispatch]);
 
   // Memoize colors to prevent recalculation on every render
   const locationColors = useMemo(() => {
@@ -535,13 +571,7 @@ export default function Maintenance() {
         ))}
       </Tabs>
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <>
-          {/* Main Content */}
+      {/* Main Content */}
           <Grid container spacing={2}>
             {/* Metric Display */}
             <Grid size={{xs: 12, md: hideMap ? 6 : 4}}>
@@ -561,12 +591,20 @@ export default function Maintenance() {
                   flex: 1,
                   minHeight: "130px"
                 }}>
-                  <Typography variant="h6" component="div" gutterBottom sx={{ fontWeight: '500', fontSize: '24px' }}>
-                    {metricData && typeof metricData === 'object' && metricData !== null && 'avg' in metricData && formatMetricValue((metricData as any).avg)}
-                  </Typography>
-                  <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                    {metricSubtitle}
-                  </Typography>
+                  {straightAverage.error ? (
+                    <ErrorDisplay onRetry={retryMetricCard} height="100px" />
+                  ) : straightAverage.loading ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <>
+                      <Typography variant="h6" component="div" gutterBottom sx={{ fontWeight: '500', fontSize: '24px' }}>
+                        {metricData && typeof metricData === 'object' && metricData !== null && 'avg' in metricData && formatMetricValue((metricData as any).avg)}
+                      </Typography>
+                      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                        {metricSubtitle}
+                      </Typography>
+                    </>
+                  )}
                 </Paper>
 
                 {/* Trend Indicator Card */}
@@ -579,36 +617,42 @@ export default function Maintenance() {
                   flex: 1,
                   minHeight: "130px"
                 }}>
-                  {metricData && typeof metricData === 'object' && metricData !== null && 'delta' in metricData && (
-                    <>
-                      <Typography
-                        variant="h5"
-                        component="div"
-                        sx={{
-                          color:
-                            (metricData as any).delta > 0
-                              ? "success.main"
-                              : (metricData as any).delta < 0
-                                ? "error.main"
-                                : "text.secondary",
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
-                        {(metricData as any).delta < 0 && "-"}
-                        {Math.abs((metricData as any).delta * 100).toFixed(1)}%
-                        {(metricData as any).delta > 0 ? (
-                          <ArrowUpwardIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        ) : (metricData as any).delta < 0 ? (
-                          <ArrowDownwardIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        ) : (
-                          <RemoveIcon fontSize="small" sx={{ ml: 0.5 }} />
-                        )}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        Change from prior period
-                      </Typography>
-                    </>
+                  {straightAverage.error ? (
+                    <ErrorDisplay onRetry={retryMetricCard} height="100px" />
+                  ) : straightAverage.loading ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    metricData && typeof metricData === 'object' && metricData !== null && 'delta' in metricData && (
+                      <>
+                        <Typography
+                          variant="h5"
+                          component="div"
+                          sx={{
+                            color:
+                              (metricData as any).delta > 0
+                                ? "success.main"
+                                : (metricData as any).delta < 0
+                                  ? "error.main"
+                                  : "text.secondary",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          {(metricData as any).delta < 0 && "-"}
+                          {Math.abs((metricData as any).delta * 100).toFixed(1)}%
+                          {(metricData as any).delta > 0 ? (
+                            <ArrowUpwardIcon fontSize="small" sx={{ ml: 0.5 }} />
+                          ) : (metricData as any).delta < 0 ? (
+                            <ArrowDownwardIcon fontSize="small" sx={{ ml: 0.5 }} />
+                          ) : (
+                            <RemoveIcon fontSize="small" sx={{ ml: 0.5 }} />
+                          )}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          Change from prior period
+                        </Typography>
+                      </>
+                    )
                   )}
                 </Paper>
               </Box>
@@ -628,20 +672,23 @@ export default function Maintenance() {
                   position: "relative", 
                   minHeight: { xs: "350px", md: "284px" } /* 2*130px (cards) + 2*12px (gap) */
                 }}>
-                  {loading ? (
+                  {signalsError || signalsFilterAverage.error ? (
+                    <ErrorDisplay onRetry={retryMapData} fullHeight />
+                  ) : (signalsFilterAverage.loading || straightAverage.loading) ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                       <CircularProgress />
                     </Box>
-                  ) :  <MapBox 
-                        data={mapData.length > 0 ? [mapPlotData as any] : []}
-                        isRawTraces={true}
-                        loading={false}
-                        height="100%"
-                        center={{ lat: 33.789, lon: -84.388 }}
-                        zoom={11}
-                        renderLegend={getMapLegend}
-                      />
-                  }
+                  ) : (
+                    <MapBox 
+                      data={mapData.length > 0 ? [mapPlotData as any] : []}
+                      isRawTraces={true}
+                      loading={false}
+                      height="100%"
+                      center={{ lat: 33.789, lon: -84.388 }}
+                      zoom={11}
+                      renderLegend={getMapLegend}
+                    />
+                  )}
                 </Box>
               </Paper>
             </Grid>}
@@ -661,30 +708,46 @@ export default function Maintenance() {
                       flexDirection: "column",
                       overflow: "hidden"
                     }}>
-                      <LocationBarChart
-                        data={locationBarData as any}
-                        selectedMetric={selectedMetric}
-                        onLocationClick={handleLocationClick}
-                        height={500} // Match TimeSeriesChart height for x-axis alignment
-                      />
+                      {metricsAverage.error ? (
+                        <ErrorDisplay onRetry={retryLocationBarChart} height="500px" />
+                      ) : metricsAverage.loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '500px' }}>
+                          <CircularProgress />
+                        </Box>
+                      ) : (
+                        <LocationBarChart
+                          data={locationBarData as any}
+                          selectedMetric={selectedMetric}
+                          onLocationClick={handleLocationClick}
+                          height={500} // Match TimeSeriesChart height for x-axis alignment
+                        />
+                      )}
                     </Box>
                   </Grid>
 
                   {/* Time Series Chart */}
                   <Grid size={{xs: 12, md: 8}}>
-                    <TimeSeriesChart
-                      data={timeSeriesChartData}
-                      selectedMetric={selectedMetric}
-                      height={500}
-                      // showLegend={!selectedLocation}
-                    />
+                    {metricsFilter.error ? (
+                      <Box sx={{ height: "500px", display: "flex" }}>
+                        <ErrorDisplay onRetry={retryTimeSeriesChart} height="500px" />
+                      </Box>
+                    ) : metricsFilter.loading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '500px' }}>
+                        <CircularProgress />
+                      </Box>
+                    ) : (
+                      <TimeSeriesChart
+                        data={timeSeriesChartData}
+                        selectedMetric={selectedMetric}
+                        height={500}
+                        // showLegend={!selectedLocation}
+                      />
+                    )}
                   </Grid>
                 </Grid>
               </Paper>
             </Grid>
           </Grid>
-        </>
-      )}
     </Box>
   )
 }

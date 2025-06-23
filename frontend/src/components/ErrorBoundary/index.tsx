@@ -1,12 +1,16 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
-import Paper from '@mui/material/Paper'
-import Alert from '@mui/material/Alert'
-import AlertTitle from '@mui/material/AlertTitle'
-import RefreshIcon from '@mui/icons-material/Refresh'
-import BugReportIcon from '@mui/icons-material/BugReport'
+"use client"
+
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import './styles.css';
 
 interface Props {
   children: ReactNode
@@ -17,6 +21,103 @@ interface State {
   hasError: boolean
   error?: Error
   errorInfo?: ErrorInfo
+}
+
+// API Error Display Component
+export interface ApiErrorDisplayProps {
+  error: string | null
+  onRetry?: () => void
+  retrying?: boolean
+  title?: string
+  compact?: boolean
+}
+
+export const ApiErrorDisplay: React.FC<ApiErrorDisplayProps> = ({
+  error,
+  onRetry,
+  retrying = false,
+  title = "Unable to Load Data",
+  compact = false
+}) => {
+  if (!error) return null
+
+  const getErrorIcon = () => {
+    if (error.includes('Network error') || error.includes('connection')) {
+      return <WifiOffIcon />
+    }
+    if (error.includes('timeout') || error.includes('timed out')) {
+      return <AccessTimeIcon />
+    }
+    return <ErrorOutlineIcon />
+  }
+
+  const getErrorSeverity = (): 'error' | 'warning' => {
+    if (error.includes('Network error') || error.includes('timeout')) {
+      return 'warning'
+    }
+    return 'error'
+  }
+
+  if (compact) {
+    return (
+      <Alert 
+        severity={getErrorSeverity()} 
+        icon={getErrorIcon()}
+        action={
+          onRetry && (
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={onRetry}
+              disabled={retrying}
+              startIcon={<RefreshIcon />}
+            >
+              {retrying ? 'Retrying...' : 'Retry'}
+            </Button>
+          )
+        }
+        sx={{ mb: 1 }}
+      >
+        {error}
+      </Alert>
+    )
+  }
+
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      height: '100%',
+      minHeight: 200,
+      p: 3,
+      textAlign: 'center'
+    }}>
+      <Alert 
+        severity={getErrorSeverity()} 
+        icon={getErrorIcon()}
+        sx={{ width: '100%', maxWidth: 500 }}
+      >
+        <AlertTitle>{title}</AlertTitle>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+        {onRetry && (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            onClick={onRetry}
+            disabled={retrying}
+            startIcon={<RefreshIcon />}
+            sx={{ mt: 1 }}
+          >
+            {retrying ? 'Retrying...' : 'Try Again'}
+          </Button>
+        )}
+      </Alert>
+    </Box>
+  )
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -60,86 +161,11 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh',
-            padding: 3,
-            backgroundColor: '#f5f5f5'
-          }}
-        >
-          <Paper
-            elevation={3}
-            sx={{
-              padding: 4,
-              maxWidth: 600,
-              width: '100%',
-              textAlign: 'center'
-            }}
-          >
-            <Alert severity="error" sx={{ mb: 3 }}>
-              <AlertTitle>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BugReportIcon />
-                  Something went wrong
-                </Box>
-              </AlertTitle>
-              An unexpected error occurred while rendering this page.
-            </Alert>
-
-            <Typography variant="h5" gutterBottom>
-              Oops! Something went wrong
-            </Typography>
-
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              We're sorry for the inconvenience. The application encountered an unexpected error.
-            </Typography>
-
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<RefreshIcon />}
-                onClick={this.handleReload}
-              >
-                Reload Page
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={this.handleReset}
-              >
-                Try Again
-              </Button>
-            </Box>
-
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <Box sx={{ mt: 4, textAlign: 'left' }}>
-                <Typography variant="h6" gutterBottom>
-                  Error Details (Development Only):
-                </Typography>
-                <Paper
-                  sx={{
-                    padding: 2,
-                    backgroundColor: '#f8f8f8',
-                    border: '1px solid #ddd',
-                    fontFamily: 'monospace',
-                    fontSize: '0.875rem',
-                    overflow: 'auto',
-                    maxHeight: 300
-                  }}
-                >
-                  <Typography component="pre" sx={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                    {this.state.error.toString()}
-                    {this.state.errorInfo?.componentStack}
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
-          </Paper>
-        </Box>
+        <ApiErrorDisplay 
+          error={this.state.error?.message || 'Something went wrong'}
+          onRetry={this.handleReset}
+          title="Application Error"
+        />
       )
     }
 

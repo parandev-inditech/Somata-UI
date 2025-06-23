@@ -36,6 +36,7 @@ import { WatchdogTableData } from "../../services/api/watchdogApi"
 import DateRangePickerComponent from "../DateRangePicker"
 import useDocumentTitle from "../../hooks/useDocumentTitle"
 import { debounce } from 'lodash'
+import ErrorDisplay from "../ErrorDisplay"
 
 // Available options
 const zoneGroups = ["Central Metro", "Eastern Metro", "Western Metro", "North", "Southeast", "Southwest", "Ramp Meters"]
@@ -57,7 +58,7 @@ interface WatchdogFilter {
 export default function Watchdog() {
   useDocumentTitle();
   const dispatch = useAppDispatch();
-  const { data, loading } = useSelector((state: RootState) => state.watchdog)
+  const { data, loading, error } = useSelector((state: RootState) => state.watchdog)
   
   const [filter, setFilter] = useState<WatchdogFilter>({
     startDate: new Date(new Date().setDate(new Date().getDate() - 7)),
@@ -128,6 +129,11 @@ export default function Watchdog() {
     }
     
     void dispatch(fetchWatchdogData(params))
+  }
+
+  // Retry function for error handling
+  const retryData = () => {
+    loadFilteredData()
   }
 
   const renderPlot = () => {
@@ -397,8 +403,18 @@ export default function Watchdog() {
 
       {/* Table View */}
       {view === "table" && (
-        <TableContainer sx={{ flex: 1, overflow: "auto" }}>
-          <Table stickyHeader>
+        <>
+          {error ? (
+            <Box sx={{ flex: 1, display: 'flex' }}>
+              <ErrorDisplay onRetry={retryData} fullHeight />
+            </Box>
+          ) : loading ? (
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer sx={{ flex: 1, overflow: "auto" }}>
+              <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell 
@@ -512,26 +528,40 @@ export default function Watchdog() {
                   <TableCell align="center">{row.streak}</TableCell>
                 </TableRow>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableBody>
+            </Table>
+          </TableContainer>
+          )}
+        </>
       )}
 
       {/* Plot View */}
       {view === "plot" && (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
-          <Typography variant="body2" color="error" sx={{ mb: 1 }}>
-            Darker colors mean more consecutive days in which the alert condition is active.
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Use the 'Intersection Filter' box to reduce the size of the list. Filter on the intersection name or ID number.
-          </Typography>
-          <Box 
-            id="plot" 
-            ref={plotContainerRef} 
-            sx={{ flex: 1 }} 
-          />
-        </Box>
+        <>
+          {error ? (
+            <Box sx={{ flex: 1, display: 'flex' }}>
+              <ErrorDisplay onRetry={retryData} fullHeight />
+            </Box>
+          ) : loading ? (
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
+              <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+                Darker colors mean more consecutive days in which the alert condition is active.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Use the 'Intersection Filter' box to reduce the size of the list. Filter on the intersection name or ID number.
+              </Typography>
+              <Box 
+                id="plot" 
+                ref={plotContainerRef} 
+                sx={{ flex: 1 }} 
+              />
+            </Box>
+          )}
+        </>
       )}
 
       {/* Bottom Controls */}
@@ -610,18 +640,7 @@ export default function Watchdog() {
         </Box>
       </Box>
 
-      {/* Loading Spinner */}
-      {loading && (
-        <CircularProgress
-          sx={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            zIndex: 2,
-          }}
-        />
-      )}
+
     </Box>
   )
 }

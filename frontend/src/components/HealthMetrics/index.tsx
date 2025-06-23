@@ -36,6 +36,7 @@ import { consoledebug } from '../../utils/debug';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
 import LocationBarChart from '../charts/LocationBarChart';
 import TimeSeriesChart from '../charts/TimeSeriesChart';
+import ErrorDisplay from '../ErrorDisplay';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -192,18 +193,46 @@ const RegionStatus = () => {
         dispatch(fetchRegionAverages(startDate));
     }, [dispatch]);
 
-    if (regionsState.loading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                <CircularProgress />
-            </Box>
-        );
-    }
+    // Retry function for error handling
+    const retryRegionData = () => {
+        const currentDate = new Date();
+        const yyyy = currentDate.getFullYear();
+        const mm = currentDate.getMonth() + 1;
+        const dd = currentDate.getDate();
+
+        let startMonth;
+        let startYear;
+
+        if (dd < 10) {
+            if (mm === 1) {
+                startMonth = 12;
+                startYear = yyyy - 1;
+            } else {
+                startMonth = mm - 1;
+                startYear = yyyy;
+            }
+        } else {
+            startMonth = mm;
+            startYear = yyyy;
+        }
+
+        startMonth = startMonth < 10 ? `0${startMonth}` : startMonth;
+        const startDate = `${startMonth}-01-${startYear}`;
+        dispatch(fetchRegionAverages(startDate));
+    };
 
     if (regionsState.error) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                <Typography color="error">{regionsState.error}</Typography>
+                <ErrorDisplay onRetry={retryRegionData} fullHeight />
+            </Box>
+        );
+    }
+
+    if (regionsState.loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+                <CircularProgress />
             </Box>
         );
     }
@@ -515,6 +544,22 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
         }
     }, [dispatch, type, dateRange, maintenance.data.length, operations.data.length, safety.data.length]);
 
+    // Retry function for error handling
+    const retryTableData = () => {
+        if (!dateRange[0] || !dateRange[1]) return;
+        
+        const startDate = dateRange[0].toISOString().split('T')[0].replace(/-/g, '-');
+        const endDate = dateRange[1].toISOString().split('T')[0].replace(/-/g, '-');
+        
+        if (type === 'Maintenance') {
+            dispatch(fetchMaintenanceMetrics({ start: startDate, end: endDate }));
+        } else if (type === 'Operations') {
+            dispatch(fetchOperationsMetrics({ start: startDate, end: endDate }));
+        } else if (type === 'Safety') {
+            dispatch(fetchSafetyMetrics({ start: startDate, end: endDate }));
+        }
+    };
+
     const getTableData = () => {
         switch (type) {
             case 'Maintenance':
@@ -668,18 +713,18 @@ const MetricsTable = ({ type }: MetricsTableProps) => {
         (type === 'Operations' && operations.error) || 
         (type === 'Safety' && safety.error);
 
-    if (isLoading) {
+    if (error) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                <CircularProgress />
+                <ErrorDisplay onRetry={retryTableData} fullHeight />
             </Box>
         );
     }
 
-    if (error) {
+    if (isLoading) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                <Typography color="error">{error}</Typography>
+                <CircularProgress />
             </Box>
         );
     }
@@ -945,6 +990,41 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         fetchData();
     }, [getMeasure, filterParams]);
 
+    // Retry function for error handling
+    const retryTrendData = async () => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const measure = getMeasure();
+            const params: MetricsFilterRequest = {
+                source: 'main',
+                measure
+            };
+            
+            // POST request to /metrics/filter for time series data
+            const timeSeriesResponse = await metricsApi.getMetricsFilter(params, filterParams);
+            
+            // POST request to /metrics/average for location bar data
+            const averageResponse = await metricsApi.getMetricsAverage({
+                ...params,
+                dashboard: false
+            }, filterParams);
+            
+            consoledebug('Retry - Time Series Response:', timeSeriesResponse);
+            consoledebug('Retry - Average Response:', averageResponse);
+
+            setRawData(timeSeriesResponse || []);
+            setAverageData(Array.isArray(averageResponse) ? averageResponse : []);
+            
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch trend data');
+            console.error('Error retrying trend data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Process data when raw data changes
     useEffect(() => {
         if (!rawData.length && !averageData.length) return;
@@ -1108,18 +1188,18 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         return timeSeriesData;
     };
 
-    if (loading) {
+    if (error) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                <CircularProgress />
+                <ErrorDisplay onRetry={retryTrendData} fullHeight />
             </Box>
         );
     }
 
-    if (error) {
+    if (loading) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                <Typography color="error">{error}</Typography>
+                <CircularProgress />
             </Box>
         );
     }

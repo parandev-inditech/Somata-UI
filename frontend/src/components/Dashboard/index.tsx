@@ -25,6 +25,7 @@ import mapSettings from "../../utils/mapSettings";
 import { useAppSelector, useAppDispatch } from '../../hooks/useTypedSelector';
 import { consoledebug } from "../../utils/debug";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import ErrorDisplay from '../ErrorDisplay';
 
 interface MetricRow {
   label: string
@@ -155,6 +156,13 @@ export default function Dashboard() {
   const [volMetrics, setVolMetrics] = useState<MetricRow[]>([]);
   const [mapData, setMapData] = useState<any>(null);
   const [mapLoading, setMapLoading] = useState<boolean>(true);
+  
+  // Loading and error states for each section
+  const [perfLoading, setPerfLoading] = useState<boolean>(false);
+  const [perfError, setPerfError] = useState<string | null>(null);
+  const [volLoading, setVolLoading] = useState<boolean>(false);
+  const [volError, setVolError] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
   // const [mapLayout, setMapLayout] = useState<any>({
   //   autosize: true,
   //   hovermode: "closest",
@@ -234,6 +242,149 @@ export default function Dashboard() {
 
   const commonFilterParams = useSelector(selectFilterParams);
   const filtersApplied = useSelector((state: RootState) => state.filter.filtersApplied);
+
+  // Retry functions for each section
+  const retryPerfMetrics = async () => {
+    setPerfLoading(true);
+    setPerfError(null);
+    
+    try {
+      const perfMetricsData = await Promise.all(
+        performanceMetricCodes.map(async (measure) => {
+          const params: MetricsFilterRequest = {
+            source: "main",
+            measure,
+          };
+          
+          try {
+            await dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+            const stateAfterDispatch = store.getState();
+            const straightAverageData = stateAfterDispatch.metrics.straightAverage.data;
+            
+            let value: number;
+            
+            if (straightAverageData !== null) {
+              if (typeof straightAverageData === 'number') {
+                value = straightAverageData;
+              } else if (typeof straightAverageData === 'object' && 'avg' in straightAverageData) {
+                value = (straightAverageData as any).avg;
+              } else {
+                console.error(`Unexpected response structure for ${measure}:`, straightAverageData);
+                value = NaN;
+              }
+            } else {
+              console.error(`Invalid response for ${measure}:`, straightAverageData);
+              value = NaN;
+            }
+              
+            return {
+              label: metricLabels[measure],
+              value: formatMetricValue(value, measure),
+              unit: getMetricUnit(measure),
+              measure,
+            };
+          } catch (error) {
+            console.error(`Error fetching ${measure}:`, error);
+            return {
+              label: metricLabels[measure],
+              value: 'N/A',
+              unit: getMetricUnit(measure),
+              measure,
+            };
+          }
+        })
+      );
+      
+      setPerfMetrics(perfMetricsData);
+    } catch (error) {
+      setPerfError(error instanceof Error ? error.message : 'Failed to fetch performance metrics');
+      console.error("Error fetching performance metrics:", error);
+    } finally {
+      setPerfLoading(false);
+    }
+  };
+
+  const retryVolMetrics = async () => {
+    setVolLoading(true);
+    setVolError(null);
+    
+    try {
+      const volMetricsData = await Promise.all(
+        volumeMetricCodes.map(async (measure) => {
+          const params: MetricsFilterRequest = {
+            source: "main",
+            measure,
+          };
+          
+          try {
+            await dispatch(fetchStraightAverage({ params, filterParams: commonFilterParams }));
+            const stateAfterDispatch = store.getState();
+            const straightAverageData = stateAfterDispatch.metrics.straightAverage.data;
+            
+            let value: number;
+            
+            if (straightAverageData !== null) {
+              if (typeof straightAverageData === 'number') {
+                value = straightAverageData;
+              } else if (typeof straightAverageData === 'object' && 'avg' in straightAverageData) {
+                value = (straightAverageData as any).avg;
+              } else {
+                console.error(`Unexpected response structure for ${measure}:`, straightAverageData);
+                value = NaN;
+              }
+            } else {
+              console.error(`Invalid response for ${measure}:`, straightAverageData);
+              value = NaN;
+            }
+              
+            return {
+              label: metricLabels[measure],
+              value: formatMetricValue(value, measure),
+              unit: getMetricUnit(measure),
+              measure,
+            };
+          } catch (error) {
+            console.error(`Error fetching ${measure}:`, error);
+            return {
+              label: metricLabels[measure],
+              value: 'N/A',
+              unit: getMetricUnit(measure),
+              measure,
+            };
+          }
+        })
+      );
+      
+      setVolMetrics(volMetricsData);
+    } catch (error) {
+      setVolError(error instanceof Error ? error.message : 'Failed to fetch volume metrics');
+      console.error("Error fetching volume metrics:", error);
+    } finally {
+      setVolLoading(false);
+    }
+  };
+
+  const retryMapData = async () => {
+    setMapLoading(true);
+    setMapError(null);
+    
+    try {      
+      const measure = displayMetricToMeasureMap[displayMetric];
+      const params: MetricsFilterRequest = {
+        source: "main",
+        measure,
+      };
+      
+      consoledebug(`Retrying map data for ${displayMetric} (${measure})`);
+      
+      await dispatch(fetchSignalsFilterAverage({ params, filterParams: commonFilterParams }));
+    } catch (error) {
+      setMapError(error instanceof Error ? error.message : 'Failed to fetch map data');
+      console.error("Error retrying map data:", error);
+    } finally {
+      setMapLoading(false);
+    }
+  };
 
   useEffect(() => {
     dispatch(fetchAllSignals());
@@ -360,8 +511,11 @@ export default function Dashboard() {
   // Fetch data when component mounts or when filters are applied
   useEffect(() => {    
     const fetchData = async () => {
+      // Fetch performance metrics
+      setPerfLoading(true);
+      setPerfError(null);
+      
       try {
-        // Fetch performance metrics
         const perfMetricsData = await Promise.all(
           performanceMetricCodes.map(async (measure) => {
             const params: MetricsFilterRequest = {
@@ -413,8 +567,18 @@ export default function Dashboard() {
         );
         
         setPerfMetrics(perfMetricsData);
-        
-        // Similar approach for volume metrics
+      } catch (error) {
+        setPerfError(error instanceof Error ? error.message : 'Failed to fetch performance metrics');
+        console.error("Error fetching performance metrics:", error);
+      } finally {
+        setPerfLoading(false);
+      }
+      
+      // Fetch volume metrics
+      setVolLoading(true);
+      setVolError(null);
+      
+      try {
         const volMetricsData = await Promise.all(
           volumeMetricCodes.map(async (measure) => {
             const params: MetricsFilterRequest = {
@@ -464,9 +628,11 @@ export default function Dashboard() {
         );
         
         setVolMetrics(volMetricsData);
-        
       } catch (error) {
-        console.error("Error fetching metrics data:", error);
+        setVolError(error instanceof Error ? error.message : 'Failed to fetch volume metrics');
+        console.error("Error fetching volume metrics:", error);
+      } finally {
+        setVolLoading(false);
       }
     };
     
@@ -480,6 +646,8 @@ export default function Dashboard() {
     // Fetch map data for selected metric
     const fetchMapData = async () => {
       setMapLoading(true);
+      setMapError(null);
+      
       try {      
         const measure = displayMetricToMeasureMap[displayMetric];
         const params: MetricsFilterRequest = {
@@ -492,6 +660,7 @@ export default function Dashboard() {
         // Dispatch the action to fetch signal metrics
         await dispatch(fetchSignalsFilterAverage({ params, filterParams: commonFilterParams }));
       } catch (error) {
+        setMapError(error instanceof Error ? error.message : 'Failed to fetch map data');
         console.error("Error fetching map data:", error);
       } finally {
         setMapLoading(false);
@@ -530,21 +699,43 @@ export default function Dashboard() {
                 <Typography variant="h6" gutterBottom fontWeight={'bold'}>
                   Performance
                 </Typography>
-                <TableContainer sx={{ flex: 1 }}>
-                    <Table size="small">
-                      <TableBody>
-                        {perfMetrics.map((row) => (
-                          <TableRow key={row.label}>
-                            <TableCell>{row.label}</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>{row.value}</TableCell>
-                            <TableCell align="right" sx={{ width: 50, fontWeight: 'bold' }}>
-                              {row.unit}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                </TableContainer>
+                {perfError ? (
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    minHeight: 200
+                  }}>
+                    <ErrorDisplay onRetry={retryPerfMetrics} />
+                  </Box>
+                ) : perfLoading ? (
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    minHeight: 200
+                  }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (
+                  <TableContainer sx={{ flex: 1 }}>
+                      <Table size="small">
+                        <TableBody>
+                          {perfMetrics.map((row) => (
+                            <TableRow key={row.label}>
+                              <TableCell>{row.label}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>{row.value}</TableCell>
+                              <TableCell align="right" sx={{ width: 50, fontWeight: 'bold' }}>
+                                {row.unit}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                  </TableContainer>
+                )}
               </Paper>
             </Grid>
 
@@ -559,21 +750,43 @@ export default function Dashboard() {
                 <Typography variant="h6" gutterBottom fontWeight={'bold'}>
                   Volume & Equipment
                 </Typography>
-                <TableContainer sx={{ flex: 1 }}>
-                    <Table size="small">
-                      <TableBody>
-                        {volMetrics.map((row) => (
-                          <TableRow key={row.label}>
-                            <TableCell>{row.label}</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>{row.value}</TableCell>
-                            <TableCell align="right" sx={{ width: 50, fontWeight: 'bold' }}>
-                              {row.unit}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                </TableContainer>
+                {volError ? (
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    minHeight: 200
+                  }}>
+                    <ErrorDisplay onRetry={retryVolMetrics} />
+                  </Box>
+                ) : volLoading ? (
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    minHeight: 200
+                  }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (
+                  <TableContainer sx={{ flex: 1 }}>
+                      <Table size="small">
+                        <TableBody>
+                          {volMetrics.map((row) => (
+                            <TableRow key={row.label}>
+                              <TableCell>{row.label}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>{row.value}</TableCell>
+                              <TableCell align="right" sx={{ width: 50, fontWeight: 'bold' }}>
+                                {row.unit}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                  </TableContainer>
+                )}
               </Paper>
             </Grid>
           </Grid>
@@ -606,7 +819,11 @@ export default function Dashboard() {
               position: "relative", 
               minHeight: 0
             }}>
-              {mapLoading ? (
+              {mapError ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                  <ErrorDisplay onRetry={retryMapData} fullHeight />
+                </Box>
+              ) : mapLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                   <CircularProgress />
                 </Box>

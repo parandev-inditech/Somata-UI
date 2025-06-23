@@ -11,6 +11,7 @@ import {
     TablePagination,
     Paper,
     Typography,
+    CircularProgress,
     styled
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,6 +20,7 @@ import { fetchAllSignals } from "../../store/slices/metricsSlice"
 import { consoledebug } from "../../utils/debug";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import { RootState, AppDispatch } from "../../store/store";
+import ErrorDisplay from "../ErrorDisplay";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     '&.MuiTableCell-head': {
@@ -48,6 +50,8 @@ export default function SignalInfo() {
     useDocumentTitle();
     const dispatch = useDispatch<AppDispatch>();
     const signals = useSelector((state: RootState) => state.metrics.signals);
+    const loading = useSelector((state: RootState) => state.metrics.loading);
+    const error = useSelector((state: RootState) => state.metrics.error);
     consoledebug('allSignals in SignalInfo:', signals);
 
     const [page, setPage] = useState(0);
@@ -57,6 +61,11 @@ export default function SignalInfo() {
     useEffect(() => {
         dispatch(fetchAllSignals());
     }, [dispatch]);
+
+    // Retry function for error handling
+    const retryData = () => {
+        dispatch(fetchAllSignals());
+    };
 
     const handleChangePage = (event: unknown, newPage: number) => {
         setPage(newPage);
@@ -120,6 +129,18 @@ export default function SignalInfo() {
     return (
         <>
         {/* <Paper sx={{ width: '100%', overflow: 'hidden' }}> */}
+        {error ? (
+            <Paper sx={{ height: '80vh', display: 'flex' }}>
+                <ErrorDisplay onRetry={retryData} fullHeight />
+            </Paper>
+        ) : loading ? (
+            <Paper sx={{ height: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <CircularProgress />
+                    <Typography>Loading signals...</Typography>
+                </Box>
+            </Paper>
+        ) : (
             <TableContainer component={Paper} sx={{ height: '80vh' }}>
                 <Table stickyHeader aria-label="sticky table" sx={{ height: '100%' }}>
                     <TableHead>
@@ -200,9 +221,11 @@ export default function SignalInfo() {
                     </TableBody>
                 </Table>
             </TableContainer>
+        )}
             
-        {/* </Paper> */}
-        <Box sx={{ 
+        {/* Pagination and Export Section - Only show when data is loaded */}
+        {!error && !loading && (
+            <Box sx={{ 
                 display: 'flex',
                 position: 'absolute',
                 justifyContent: 'space-between',
@@ -233,6 +256,7 @@ export default function SignalInfo() {
                     onRowsPerPageChange={handleChangeRowsPerPage}
                 />
             </Box>
+        )}
         </>
     );
 };
