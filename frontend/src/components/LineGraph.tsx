@@ -329,8 +329,8 @@ const LineGraph: React.FC<LineGraphProps> = ({
     autosize: true,
     height: 100,
     margin: {
-      l: 0,
-      r: 0,
+      l: 30,
+      r: 30,
       t: 10,
       b: 20,
       pad: 0,
@@ -363,8 +363,9 @@ const LineGraph: React.FC<LineGraphProps> = ({
         text: formatValue(values[0]),
         showarrow: false,
         font: { size: 10 },
-        xanchor: "left",
-        yanchor: "bottom",
+        xanchor: "right",
+        yanchor: "middle",
+        xshift: -5, // Position before the start of the line
       },
       {
         x: months[months.length - 1],
@@ -372,8 +373,9 @@ const LineGraph: React.FC<LineGraphProps> = ({
         text: formatValue(values[values.length - 1]),
         showarrow: false,
         font: { size: 10 },
-        xanchor: "right",
-        yanchor: "bottom",
+        xanchor: "left",
+        yanchor: "middle",
+        xshift: 5, // Position after the end of the line
       },
     ],
   }
