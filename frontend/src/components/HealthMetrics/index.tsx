@@ -53,58 +53,70 @@ const RegionHeader = styled(Paper)(({ theme, color }) => ({
     marginBottom: theme.spacing(2)
 }));
 
-const StatusCircle = styled(Box)(({ theme, color }) => ({
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-    '& .progress-wrapper': {
-        position: 'relative',
+const StatusCircle = styled(Box)(({ theme, color }) => {
+    // Helper function to convert rgb string to rgba with opacity
+    const getRgbaColor = (rgbColor: string, opacity: number) => {
+        const match = rgbColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (match) {
+            const [, r, g, b] = match;
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+        return rgbColor; // fallback to original color if parsing fails
+    };
+
+    return {
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        width: 80,
-        height: 80,
-        [theme.breakpoints.up('md')]: {
-            width: 100,
-            height: 100,
-        },
-        [theme.breakpoints.up('lg')]: {
-            width: 120,
-            height: 120,
-        },
-        '& .MuiCircularProgress-root': {
-            position: 'absolute',
-            '&.outer': {
-                color: color,
-                transform: 'scale(1.4)',
-                '& .MuiCircularProgress-svg': {
-                    strokeLinecap: 'round'
-                }
-            },
-            '&.inner': {
-                color: theme.palette.mode === 'light' 
-                    ? `${color}40`
-                    : `${color}80`,
-                '& .MuiCircularProgress-svg': {
-                    strokeLinecap: 'round'
-                }
-            }
-        },
-        '& .icon': {
-            position: 'absolute',
-            color: color,
-            fontSize: '24px',
-            zIndex: 1,
+        gap: theme.spacing(1),
+        '& .progress-wrapper': {
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 80,
+            height: 80,
             [theme.breakpoints.up('md')]: {
-                fontSize: '30px',
+                width: 100,
+                height: 100,
             },
             [theme.breakpoints.up('lg')]: {
-                fontSize: '36px',
+                width: 120,
+                height: 120,
+            },
+            '& .MuiCircularProgress-root': {
+                position: 'absolute',
+                '&.outer': {
+                    color: color,
+                    transform: 'scale(1.4)',
+                    '& .MuiCircularProgress-svg': {
+                        strokeLinecap: 'round'
+                    }
+                },
+                '&.inner': {
+                    color: theme.palette.mode === 'light' 
+                        ? getRgbaColor(color as string, 0.25)
+                        : getRgbaColor(color as string, 0.5),
+                    '& .MuiCircularProgress-svg': {
+                        strokeLinecap: 'round'
+                    }
+                }
+            },
+            '& .icon': {
+                position: 'absolute',
+                color: color,
+                fontSize: '24px',
+                zIndex: 1,
+                [theme.breakpoints.up('md')]: {
+                    fontSize: '30px',
+                },
+                [theme.breakpoints.up('lg')]: {
+                    fontSize: '36px',
+                }
             }
         }
-    }
-}));
+    };
+});
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     '&.MuiTableCell-head': {
@@ -248,9 +260,9 @@ const RegionStatus = () => {
     ];
 
     const getStatusColor = (percentage: number = 0) => {
-        if (percentage >= 75) return '#4CAF50';
-        if (percentage >= 25) return '#FFC107';
-        return '#F44336';
+        if (percentage >= 75) return 'rgb(120, 192, 0)';
+        if (percentage >= 25) return 'rgb(255, 195, 0)';
+        return 'rgb(214, 22, 22)';
     };
 
     const RegionCard = ({ region }: { region: { 
@@ -361,7 +373,7 @@ const RegionStatus = () => {
                             </Typography>
                         </Box>
                     </div>
-                    <Typography sx={{ fontSize: { xs: '0.8rem', md: '0.9rem', lg: '1rem' }, color: 'blue' }}>Operation</Typography>
+                    <Typography sx={{ fontSize: { xs: '0.8rem', md: '0.9rem', lg: '1rem' }, color: 'navy' }}>Operation</Typography>
                 </StatusCircle>
                 <StatusCircle color={getStatusColor(region?.maintenance)}>
                     <div className="progress-wrapper">
@@ -409,7 +421,7 @@ const RegionStatus = () => {
                             </Typography>
                         </Box>
                     </div>
-                    <Typography sx={{ fontSize: { xs: '0.8rem', md: '0.9rem', lg: '1rem' }, color: 'blue' }}>Maintenance</Typography>
+                    <Typography sx={{ fontSize: { xs: '0.8rem', md: '0.9rem', lg: '1rem' }, color: 'navy' }}>Maintenance</Typography>
                 </StatusCircle>
                 <StatusCircle color={getStatusColor(region?.safety)}>
                     <div className="progress-wrapper">
@@ -457,7 +469,7 @@ const RegionStatus = () => {
                             </Typography>
                         </Box>
                     </div>
-                    <Typography sx={{ fontSize: { xs: '0.8rem', md: '0.9rem', lg: '1rem' }, color: 'blue' }}>Safety</Typography>
+                    <Typography sx={{ fontSize: { xs: '0.8rem', md: '0.9rem', lg: '1rem' }, color: 'navy' }}>Safety</Typography>
                 </StatusCircle>
             </Box>
         </Box>
@@ -499,7 +511,7 @@ const RegionStatus = () => {
                     alt="Georgia Region Map"
                     sx={{
                         maxWidth: '100%',
-                        maxHeight: { xs: '250px', sm: '300px', md: '350px', lg: '400px' },
+                        maxHeight: { xs: '250px', sm: '300px', md: '350px', lg: '600px' },
                         objectFit: 'contain'
                     }}
                 />
@@ -927,12 +939,12 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         return colors[index % colors.length];
     }, []);
 
-    // Create a mapping of locations to colors that will be consistent between charts
+    // Create a mapping of locations to colors for time series (consistent across time)
     const getLocationColors = useCallback(() => {
         const uniqueLocations = Array.from(new Set([
             ...rawData.map(item => item.corridor || item.zoneGroup || 'Unknown'),
             ...averageData.map(item => item.label || 'Unknown')
-        ])).sort(); // Sort to ensure consistent ordering
+        ])).sort(); // Sort alphabetically to ensure consistent ordering for time series
         
         return Object.fromEntries(uniqueLocations.map((location, index) => [location, getLocationColor(index)]));
     }, [rawData, averageData, getLocationColor]);
@@ -1029,9 +1041,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
     useEffect(() => {
         if (!rawData.length && !averageData.length) return;
 
-        const locationColors = getLocationColors();
-
-        // Process location bar data
+        // Process location bar data first to determine sorted order
         let sortedData: Array<{location: string, average: number, label: string}> = [];
         
         if (averageData.length) {
@@ -1070,14 +1080,37 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                 .sort((a, b) => a.average - b.average);
         }
 
-        // Create location bar data
+        // Create color mapping based on sorted order (by value) to avoid consecutive same colors
+        const sortedLocationColors: Record<string, string> = {};
+        sortedData.forEach((item, index) => {
+            sortedLocationColors[item.location] = getLocationColor(index);
+        });
+
+        // Get all unique locations from both data sources for time series
+        const allUniqueLocations = Array.from(new Set([
+            ...rawData.map(item => item.corridor || item.zoneGroup || 'Unknown'),
+            ...averageData.map(item => item.label || 'Unknown')
+        ]));
+
+        // Create comprehensive color mapping: prioritize sorted colors, fill gaps for time series locations
+        const locationColors: Record<string, string> = { ...sortedLocationColors };
+        let nextColorIndex = sortedData.length; // Start after the sorted data colors
+        
+        allUniqueLocations.forEach(location => {
+            if (!locationColors[location]) {
+                locationColors[location] = getLocationColor(nextColorIndex);
+                nextColorIndex++;
+            }
+        });
+
+        // Create location bar data with colors based on sorted position
         const processedLocationBarData = {
             x: sortedData.map(item => item.average),
             y: sortedData.map(item => item.location),
             type: 'bar' as const,
             orientation: 'h' as const,
             marker: {
-                color: sortedData.map(item => locationColors[item.location]),
+                color: sortedData.map(item => sortedLocationColors[item.location]),
                 opacity: sortedData.map(item => 
                     selectedLocation ? (item.location === selectedLocation ? 1 : 0.5) : 1
                 )
