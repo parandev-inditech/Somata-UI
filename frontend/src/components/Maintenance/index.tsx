@@ -253,15 +253,39 @@ export default function Maintenance() {
     dispatch(fetchMetricsFilter({ params, filterParams: commonFilterParams }));
   }, [selectedMetricKey, commonFilterParams, dispatch]);
 
-  // Memoize colors to prevent recalculation on every render
+  // Memoize colors based on sorted order to prevent consecutive same colors
   const locationColors = useMemo(() => {
     const colors = [
       '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
       '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
     ];
-    const uniqueLocations = Array.from(new Set(locationMetrics.map(item => item.label)));
-    return Object.fromEntries(uniqueLocations.map((location, index) => [location, colors[index % colors.length]]));
-  }, [locationMetrics]);
+    const getLocationColor = (index: number) => colors[index % colors.length];
+    
+    // Create color mapping based on sorted order (by value) to avoid consecutive same colors
+    const sortedLocationColors: Record<string, string> = {};
+    locationMetrics.forEach((item, index) => {
+      sortedLocationColors[item.label] = getLocationColor(index);
+    });
+
+    // Get all unique locations from both data sources for time series
+    const allUniqueLocations = Array.from(new Set([
+      ...locationMetrics.map(item => item.label),
+      ...timeSeriesData.map(item => item.corridor)
+    ]));
+
+    // Create comprehensive color mapping: prioritize sorted colors, fill gaps for time series locations
+    const comprehensiveLocationColors: Record<string, string> = { ...sortedLocationColors };
+    let nextColorIndex = locationMetrics.length; // Start after the sorted data colors
+    
+    allUniqueLocations.forEach(location => {
+      if (!comprehensiveLocationColors[location]) {
+        comprehensiveLocationColors[location] = getLocationColor(nextColorIndex);
+        nextColorIndex++;
+      }
+    });
+    
+    return comprehensiveLocationColors;
+  }, [locationMetrics, timeSeriesData]);
 
   // Memoize format metric value function
   const formatMetricValue = useCallback((value: number | string | null) => {

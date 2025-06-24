@@ -148,27 +148,6 @@ export default function Operations() {
     tab: currentMetric?.label
   });
 
-  // Memoize colors to prevent recalculation on every render
-  const locationColors = useMemo(() => {
-    const colors = [
-      '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
-    ];
-    const getLocationColor = (index: number) => colors[index % colors.length];
-    
-    if (!metricsAverage.data || !Array.isArray(metricsAverage.data)) {
-      return {};
-    }
-    
-    const uniqueLocations = Array.from(new Set(
-      metricsAverage.data.map((item: { label: string }) => item.label)
-    ));
-    
-    return Object.fromEntries(
-      uniqueLocations.map((location, index) => [location, getLocationColor(index)])
-    );
-  }, [metricsAverage.data, filterKey]);
-
   // Memoize processed location metrics
   const locationMetrics = useMemo((): LocationMetric[] => {
     if (!metricsAverage.data || !Array.isArray(metricsAverage.data)) {
@@ -209,6 +188,44 @@ export default function Operations() {
       };
     });
   }, [metricsFilter.data, selectedMetric, filterKey]);
+
+  // Memoize colors based on sorted order to prevent consecutive same colors
+  const locationColors = useMemo(() => {
+    const colors = [
+      '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+    ];
+    const getLocationColor = (index: number) => colors[index % colors.length];
+    
+    if (!metricsAverage.data || !Array.isArray(metricsAverage.data)) {
+      return {};
+    }
+    
+    // Create color mapping based on sorted order (by value) to avoid consecutive same colors
+    const sortedLocationColors: Record<string, string> = {};
+    locationMetrics.forEach((item, index) => {
+      sortedLocationColors[item.location] = getLocationColor(index);
+    });
+
+    // Get all unique locations from both data sources for time series
+    const allUniqueLocations = Array.from(new Set([
+      ...locationMetrics.map(item => item.location),
+      ...timeSeriesData.map(item => item.location)
+    ]));
+
+    // Create comprehensive color mapping: prioritize sorted colors, fill gaps for time series locations
+    const comprehensiveLocationColors: Record<string, string> = { ...sortedLocationColors };
+    let nextColorIndex = locationMetrics.length; // Start after the sorted data colors
+    
+    allUniqueLocations.forEach(location => {
+      if (!comprehensiveLocationColors[location]) {
+        comprehensiveLocationColors[location] = getLocationColor(nextColorIndex);
+        nextColorIndex++;
+      }
+    });
+    
+    return comprehensiveLocationColors;
+  }, [locationMetrics, timeSeriesData, filterKey]);
 
   // Memoize processed map data
   const mapData = useMemo((): MapPoint[] => {
