@@ -79,6 +79,7 @@ export default function Maintenance() {
   // State for selected metric
   const [selectedMetric, setSelectedMetric] = useState("detectorUptime");
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [hoveredLocation, setHoveredLocation] = useState<string | null>(null);
 
   const commonFilterParams = useSelector(selectFilterParams);
   
@@ -211,10 +212,10 @@ export default function Maintenance() {
     setSelectedLocation(null); // Reset location selection when changing metrics
   }, []);
 
-  // Handle location selection
-  const handleLocationClick = useCallback((location: string) => {
-    setSelectedLocation(location === selectedLocation ? null : location);
-  }, [selectedLocation]);
+  // Handle location hover
+  const handleLocationHover = useCallback((location: string | null) => {
+    setHoveredLocation(location);
+  }, []);
 
   // Retry functions for each section
   const retryMetricCard = useCallback(() => {
@@ -337,11 +338,7 @@ export default function Maintenance() {
     const locationGroups: { [key: string]: { x: string[]; y: number[] } } = {}
     
     timeSeriesData.forEach((item) => {
-      // If a location is selected, only process data for that location
-      if (selectedLocation && item.corridor !== selectedLocation) {
-        return;
-      }
-
+      // Always process all data - don't filter by selectedLocation
       if (!locationGroups[item.corridor]) {
         locationGroups[item.corridor] = { x: [], y: [] }
       }
@@ -383,7 +380,7 @@ export default function Maintenance() {
         : '<b>%{text}</b><br>Date: %{x}<br>Value: %{y}<extra></extra>',
       text: Array(locationGroups[location].x.length).fill(location),
     }))
-  }, [timeSeriesData, selectedLocation, selectedMetricKey, isPercentMetric, locationColors]);
+  }, [timeSeriesData, selectedMetricKey, isPercentMetric, locationColors]); // Removed selectedLocation dependency
 
   // Prepare map data
   const mapPlotData = mapData.length === 0 ? 
@@ -742,7 +739,7 @@ export default function Maintenance() {
                         <LocationBarChart
                           data={locationBarData as any}
                           selectedMetric={selectedMetric}
-                          onLocationClick={handleLocationClick}
+                          onLocationHover={handleLocationHover}
                           height={500} // Match TimeSeriesChart height for x-axis alignment
                         />
                       )}
@@ -764,7 +761,7 @@ export default function Maintenance() {
                         data={timeSeriesChartData}
                         selectedMetric={selectedMetric}
                         height={500}
-                        // showLegend={!selectedLocation}
+                        hoveredLocation={hoveredLocation}
                       />
                     )}
                   </Grid>

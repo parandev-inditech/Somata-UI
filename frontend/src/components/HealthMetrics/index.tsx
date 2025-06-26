@@ -898,7 +898,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
         marker: { color: [], opacity: [] },
         hovertemplate: ''
     });
-    const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+    const [hoveredLocation, setHoveredLocation] = useState<string | null>(null);
     const [rawData, setRawData] = useState<MetricData[]>([]);
     const [averageData, setAverageData] = useState<{label: string; avg: number}[]>([]);
 
@@ -1112,7 +1112,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
             marker: {
                 color: sortedData.map(item => sortedLocationColors[item.location]),
                 opacity: sortedData.map(item => 
-                    selectedLocation ? (item.location === selectedLocation ? 1 : 0.5) : 1
+                    hoveredLocation ? (item.location === hoveredLocation ? 1 : 0.5) : 1
                 )
             },
             hovertemplate: '<b>%{y}</b><br>Value: %{x:.1%}<extra></extra>',
@@ -1182,20 +1182,20 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                 },
                 hovertemplate: '<b>%{text}</b><br>Date: %{x}<br>Value: %{y:.1%}<extra></extra>',
                 text: Array(points.length).fill(group),
-                visible: selectedLocation ? (group === selectedLocation ? true : 'legendonly') : true,
+                visible: true, // Always show all traces
             };
         });
 
         setTimeSeriesData(processedTimeSeriesData);
-    }, [rawData, averageData, selectedLocation, getLocationColors]);
+    }, [rawData, averageData, getLocationColors]);
 
-    // Handle bar click in location chart
-    const handleLocationClick = (location: string) => {
-        console.log('handleLocationClick', location);
-        setSelectedLocation(location === selectedLocation ? null : location);
+    // Handle bar hover in location chart
+    const handleLocationHover = (location: string | null) => {
+        console.log('handleLocationHover', location);
+        setHoveredLocation(location);
     };
     
-    // Helper function for time series chart data with filtering
+    // Helper function for time series chart data - no longer filtering
     const timeSeriesChartData = () => {
         if (!timeSeriesData.length) {
             return [{
@@ -1206,19 +1206,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
             }];
         }
         
-        // Filter data based on selected location
-        if (selectedLocation) {
-            return timeSeriesData.map(trace => ({
-                ...trace,
-                visible: trace.name === selectedLocation ? true : 'legendonly',
-                line: {
-                    ...trace.line,
-                    width: trace.name === selectedLocation ? 3 : 1
-                }
-            }));
-        }
-        
-        return timeSeriesData;
+        return timeSeriesData; // Return all data without filtering
     };
 
     if (error) {
@@ -1255,7 +1243,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                             <LocationBarChart 
                                 data={locationBarData}
                                 selectedMetric="healthMetrics"
-                                onLocationClick={handleLocationClick}
+                                onLocationHover={handleLocationHover}
                                 height={Math.max(500, (locationBarData.y?.length || 0) * 25)}
                             />
                         </Box>
@@ -1267,6 +1255,7 @@ const TrendGraphs: React.FC<TrendGraphsProps> = ({ type }) => {
                             data={timeSeriesChartData()}
                             selectedMetric="healthMetrics"
                             height={500}
+                            hoveredLocation={hoveredLocation}
                         />
                     </Grid>
                 </Grid>

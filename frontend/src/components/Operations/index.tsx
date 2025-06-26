@@ -94,6 +94,7 @@ export default function Operations() {
   // State for selected metric
   const [selectedMetric, setSelectedMetric] = useState("throughput")
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
+  const [hoveredLocation, setHoveredLocation] = useState<string | null>(null)
 
   const commonFilterParams = useSelector(selectFilterParams);
   
@@ -371,10 +372,10 @@ export default function Operations() {
       : '<b>%{y}</b><br>Value: %{x}<extra></extra>',
   }), [locationMetrics, locationColors, selectedLocation, isPercentMetric]);
 
-  // Handle bar click in location chart
-  const handleLocationClick = useCallback((location: string) => {
-    setSelectedLocation(location === selectedLocation ? null : location);
-  }, [selectedLocation]);
+  // Handle bar hover in location chart
+  const handleLocationHover = useCallback((location: string | null) => {
+    setHoveredLocation(location);
+  }, []);
 
   // Memoize time series chart data
   const timeSeriesChartData = useMemo(() => {
@@ -382,11 +383,7 @@ export default function Operations() {
     const locationGroups: { [key: string]: { x: string[]; y: number[] } } = {}
     
     timeSeriesData.forEach((item) => {
-      // If a location is selected, only process data for that location
-      if (selectedLocation && item.location !== selectedLocation) {
-        return;
-      }
-
+      // Always process all data - don't filter by selectedLocation
       if (!locationGroups[item.location]) {
         locationGroups[item.location] = { x: [], y: [] }
       }
@@ -413,7 +410,7 @@ export default function Operations() {
         : '<b>%{text}</b><br>Date: %{x}<br>Value: %{y}<extra></extra>',
       text: Array(locationGroups[location].x.length).fill(location),
     }))
-  }, [timeSeriesData, selectedLocation, isPercentMetric, locationColors]);
+  }, [timeSeriesData, isPercentMetric, locationColors]); // Removed selectedLocation dependency
 
   // Memoize map plot data
   const mapPlotData = useMemo(() => {
@@ -669,7 +666,7 @@ export default function Operations() {
                         <LocationBarChart 
                           data={locationBarData}
                           selectedMetric={selectedMetric}
-                          onLocationClick={handleLocationClick}
+                          onLocationHover={handleLocationHover}
                           height={500} // Match TimeSeriesChart height for x-axis alignment
                         />
                       )}
@@ -691,6 +688,7 @@ export default function Operations() {
                         data={timeSeriesChartData}
                         selectedMetric={selectedMetric}
                         height={500} // Consistent height for x-axis alignment
+                        hoveredLocation={hoveredLocation}
                         // showLegend={!selectedLocation}
                       />
                     )}
