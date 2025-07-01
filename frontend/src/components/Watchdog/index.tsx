@@ -140,7 +140,43 @@ export default function Watchdog() {
     if (!data || data.length === 0 || !plotContainerRef.current) return
     
     const plotData = data[0]
-    const { x, y, z } = plotData
+    const { X: x, Y: y, Z: z } = plotData
+    
+    // Check if data arrays are empty
+    if (!x || !y || !z || x.length === 0 || y.length === 0 || z.length === 0) {
+      // Render empty plot with "No data available" message
+      const layout = {
+        height: 400,
+        xaxis: {
+          visible: false,
+        },
+        yaxis: {
+          visible: false,
+        },
+        annotations: [
+          {
+            text: "No data available",
+            xref: "paper",
+            yref: "paper",
+            x: 0.5,
+            y: 0.5,
+            xanchor: 'center',
+            yanchor: 'middle',
+            showarrow: false,
+            font: {
+              size: 24,
+              color: 'rgba(0, 0, 0, 0.6)'
+            },
+          },
+        ],
+        margin: { t: 50, r: 50, b: 50, l: 50 },
+      }
+
+      Plotly.newPlot(plotContainerRef.current, [], layout, {
+        responsive: true,
+      })
+      return
+    }
     
     const plotConfig = {
       x,
@@ -256,13 +292,13 @@ export default function Watchdog() {
   const exportToExcel = () => {
     if (!data || data.length === 0) return
     
-    const tableData = data[0].tableData
+    const tableData = data[0].TableData
     
     // Create a new workbook
     const wb = XLSX.utils.book_new()
     
     // Convert the data to the format expected by xlsx
-    const excelData = tableData.map(row => ({
+    const excelData = tableData.map((row: any) => ({
       Zone: row.zone,
       Corridor: row.corridor,
       SignalID: row.signalID,
@@ -291,8 +327,8 @@ export default function Watchdog() {
   
   // Get the table data
   const getTableData = () => {
-    if (!data || data.length === 0) return []
-    return data[0].tableData
+    if (!data || data.length === 0 || !data[0].TableData) return []
+    return data[0].TableData
   }
   
   // Sort table data
@@ -411,6 +447,18 @@ export default function Watchdog() {
           ) : loading ? (
             <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <CircularProgress />
+            </Box>
+          ) : tableData.length === 0 ? (
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Typography 
+                sx={{ 
+                  fontSize: '24px', 
+                  color: 'rgba(0, 0, 0, 0.6)',
+                  fontWeight: 400
+                }}
+              >
+                No data available
+              </Typography>
             </Box>
           ) : (
             <TableContainer sx={{ flex: 1, overflow: "auto" }}>
@@ -548,12 +596,16 @@ export default function Watchdog() {
             </Box>
           ) : (
             <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
-              <Typography variant="body2" color="error" sx={{ mb: 1 }}>
-                Darker colors mean more consecutive days in which the alert condition is active.
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Use the 'Intersection Filter' box to reduce the size of the list. Filter on the intersection name or ID number.
-              </Typography>
+              {data && data.length > 0 && data[0].X && data[0].Y && data[0].X.length > 0 && data[0].Y.length > 0 && (
+                <>
+                  <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+                    Darker colors mean more consecutive days in which the alert condition is active.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    Use the 'Intersection Filter' box to reduce the size of the list. Filter on the intersection name or ID number.
+                  </Typography>
+                </>
+              )}
               <Box 
                 id="plot" 
                 ref={plotContainerRef} 
