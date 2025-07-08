@@ -19,7 +19,7 @@ interface LocationBarChartProps {
   selectedMetric: string;
   height?: number;
   width?: string | number;
-  onLocationHover?: (location: string | null) => void;
+  onLocationClick?: (location: string) => void;
 }
 
 const LocationBarChart: React.FC<LocationBarChartProps> = ({
@@ -27,7 +27,7 @@ const LocationBarChart: React.FC<LocationBarChartProps> = ({
   selectedMetric,
   height = 450, // Default height matches TimeSeriesChart default
   width = "100%",
-  onLocationHover
+  onLocationClick
 }) => {
   const mainChartRef = useRef(null);
   const xAxisRef = useRef(null);
@@ -107,18 +107,12 @@ const LocationBarChart: React.FC<LocationBarChartProps> = ({
     width: Array(data.y.length).fill(0.8) as number[]
   } as Plotly.Data;
 
-  const handleHover = (event: Readonly<Plotly.PlotMouseEvent>) => {
-    if (event.points && event.points[0] && onLocationHover) {
+  const handleClick = (event: Readonly<Plotly.PlotMouseEvent>) => {
+    if (event.points && event.points[0] && onLocationClick) {
       const point = event.points[0] as Plotly.PlotDatum;
       if (point.y && typeof point.y === 'string') {
-        onLocationHover(point.y);
+        onLocationClick(point.y);
       }
-    }
-  };
-
-  const handleUnhover = () => {
-    if (onLocationHover) {
-      onLocationHover(null);
     }
   };
 
@@ -174,9 +168,9 @@ const LocationBarChart: React.FC<LocationBarChartProps> = ({
             width: '100%',
             height: 'auto'
           }}
-          onClick={undefined}
-          onHover={handleHover}
-          onUnhover={handleUnhover}
+          onClick={handleClick}
+          onHover={undefined}
+          onUnhover={undefined}
         />
       </div>
 

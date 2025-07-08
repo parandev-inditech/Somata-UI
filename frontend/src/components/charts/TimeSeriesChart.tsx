@@ -9,7 +9,7 @@ interface TimeSeriesChartProps {
   height?: number;
   width?: string | number;
   showLegend?: boolean;
-  hoveredLocation?: string | null;
+  selectedLocation?: string | null;
 }
 
 const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
@@ -18,7 +18,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   height = 450,
   width = "100%",
   showLegend = false,
-  hoveredLocation
+  selectedLocation
 }) => {
 
   const [hoveredTrace, setHoveredTrace] = useState<number | null>(null);
@@ -69,19 +69,19 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
 
   // Enhanced data with dynamic line highlighting
   const enhancedData = data.map((trace: Record<string, any>, index: number) => {
-    // Check if this trace should be highlighted based on external hover (location name) or internal hover (trace index)
-    const isExternallyHovered = hoveredLocation && trace.name === hoveredLocation;
+    // Check if this trace should be highlighted based on external selection (location name) or internal hover (trace index)
+    const isExternallySelected = selectedLocation && trace.name === selectedLocation;
     const isInternallyHovered = hoveredTrace === index;
-    const isHighlighted = isExternallyHovered || isInternallyHovered;
-    const hasHover = hoveredLocation !== null || hoveredTrace !== null;
+    const isHighlighted = isExternallySelected || isInternallyHovered;
+    const hasSelection = selectedLocation !== null || hoveredTrace !== null;
     
     return {
       ...trace,
       line: {
         ...trace.line,
-        width: hasHover ? (isHighlighted ? 4 : 1) : 2,
+        width: hasSelection ? (isHighlighted ? 4 : 1) : 2,
       },
-      opacity: hasHover ? (isHighlighted ? 1 : 0.4) : 1,
+      opacity: hasSelection ? (isHighlighted ? 1 : 0.4) : 1,
     };
   });
 
